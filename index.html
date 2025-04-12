@@ -105,23 +105,25 @@
         }
 
         .credit {
-            position: absolute;
-            bottom: -40px;
+            position: fixed;
+            bottom: 30px;
             left: 50%;
             transform: translateX(-50%);
             color: #000;
             font-size: 18px;
             z-index: 1000;
+            text-align: center;
         }
 
         .quote {
-            position: absolute;
-            bottom: -60px;
+            position: fixed;
+            bottom: 10px;
             left: 50%;
             transform: translateX(-50%);
             color: #fff;
             font-size: 16px;
             z-index: 1000;
+            text-align: center;
         }
 
         .confession-tag {
@@ -141,7 +143,7 @@
             text-align: right;
             margin-top: 5px;
             font-style: italic;
-            color: #808080; /* 灰色 */
+            color: #808080;
         }
     </style>
 </head>
@@ -152,15 +154,15 @@
         <span class="heart">♥</span>
     </div>
     <div class="input-area">
-        <textarea id="confessionInput" placeholder="写下你的表白（最多200字）" maxlength="200" oninput="checkLimit(this, 200)"></textarea>
-        <input type="text" id="signatureInput" placeholder="你的签名（最多20字）" maxlength="20" oninput="checkLimit(this, 20)">
+        <textarea id="confessionInput" placeholder="写下你的表白（最多200字）" maxlength="200"></textarea>
+        <input type="text" id="signatureInput" placeholder="你的签名（最多20字）" maxlength="20">
         <button onclick="addConfession()">表白</button>
         <button class="share-button" onclick="shareLastConfession()">分享</button>
-        <div class="credit">Made by @carmel_qveen27</div>
-        <div class="quote">每一份表白都是心底最真挚的感情</div>
     </div>
+    <div class="credit">Made by @carmel_qveen27</div>
+    <div class="quote">每一份表白都是心底最真挚的感情</div>
 
-   <script type="module">
+<script type="module">
   // Import the functions you need from the SDKs you need
   import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-app.js";
   import { getAnalytics } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-analytics.js";
@@ -186,11 +188,11 @@
 
         // 随机颜色数组
         const colors = [
-            'rgba(255, 224, 224, 0.9)', // 浅粉色
-            'rgba(255, 255, 224, 0.9)', // 浅黄色（接近米白色）
-            'rgba(224, 255, 224, 0.9)', // 浅绿色
-            'rgba(224, 224, 255, 0.9)', // 浅紫色
-            'rgba(255, 224, 224, 0.9)'  // 浅粉色（重复）
+            'rgba(255, 224, 224, 0.9)',
+            'rgba(255, 255, 224, 0.9)',
+            'rgba(224, 255, 224, 0.9)',
+            'rgba(224, 224, 255, 0.9)',
+            'rgba(255, 224, 224, 0.9)'
         ];
 
         // 示例表白数据
@@ -205,7 +207,6 @@
             { message: "爱你不是两三天，每天想你很多遍", signature: "思念" }
         ];
 
-        // 存储最新表白用于分享
         let lastConfession = null;
 
         // 检查字数并提醒
@@ -216,12 +217,20 @@
             }
         }
 
-        // 获取随机位置，确保不与输入框及下方文字重叠
+        // 绑定输入框事件
+        document.getElementById('confessionInput').addEventListener('input', function() {
+            checkLimit(this, 200);
+        });
+        document.getElementById('signatureInput').addEventListener('input', function() {
+            checkLimit(this, 20);
+        });
+
+        // 获取随机位置
         function getRandomPosition() {
-            const maxX = window.innerWidth - 200; // 标签最大宽度
-            const maxY = window.innerHeight - 100; // 留出底部空间
+            const maxX = window.innerWidth - 200;
+            const maxY = window.innerHeight - 100;
             const inputArea = document.querySelector('.input-area');
-            const inputHeight = inputArea.offsetHeight + 60; // 包括底部文字区域
+            const inputHeight = inputArea.offsetHeight + 60;
             const inputWidth = inputArea.offsetWidth;
             const inputTop = inputArea.offsetTop;
             const inputLeft = inputArea.offsetLeft;
@@ -231,23 +240,23 @@
                 x = Math.random() * maxX;
                 y = Math.random() * maxY;
                 if (x < 0) x = 0;
-                if (y < 100) y = 100; // 避开顶部标题区域
+                if (y < 100) y = 100;
                 if (y > maxY) y = maxY;
             } while (
-                (x < inputLeft + inputWidth && x + 200 > inputLeft) && 
+                (x < inputLeft + inputWidth && x + 200 > inputLeft) &&
                 (y < inputTop + inputHeight && y + 50 > inputTop)
-            ); // 检查标签边界是否与输入框重叠
+            );
 
             return { x, y };
         }
 
-        // 检查并添加初始示例表白
-        confessionsRef.once('value', (snapshot) => {
-            if (!snapshot.val()) {
+        // 初始化示例表白
+        onValue(confessionsRef, (snapshot) => {
+            if (!snapshot.exists()) {
                 sampleMessages.forEach(sample => {
                     const { x, y } = getRandomPosition();
                     const randomColor = colors[Math.floor(Math.random() * colors.length)];
-                    confessionsRef.push({
+                    push(confessionsRef, {
                         text: sample.message,
                         signature: sample.signature,
                         x: x,
@@ -256,10 +265,10 @@
                     });
                 });
             }
-        });
+        }, { onlyOnce: true });
 
-        // 加载现有表白
-        confessionsRef.on('value', (snapshot) => {
+        // 加载表白
+        onValue(confessionsRef, (snapshot) => {
             document.querySelectorAll('.confession-tag').forEach(tag => tag.remove());
             const confessions = snapshot.val();
             if (confessions) {
@@ -285,33 +294,38 @@
             const randomColor = colors[Math.floor(Math.random() * colors.length)];
             const newConfession = { text: confessionText, signature: signatureText, x: x, y: y, color: randomColor };
 
-            confessionsRef.push(newConfession, (error) => {
+            push(confessionsRef, newConfession, (error) => {
                 if (error) {
                     console.error('提交表白失败:', error);
                 } else {
-                    lastConfession = { text: confessionText, signature: signatureText, x: x, y: y, color: randomColor };
+                    lastConfession = newConfession;
                     document.getElementById('confessionInput').value = '';
                     document.getElementById('signatureInput').value = '';
                 }
             });
         }
 
-        // 创建表白标签并绑定拖动功能
+        // 创建表白标签
         function createTag(text, signature, x, y, color) {
             const tag = document.createElement('div');
             tag.className = 'confession-tag';
             tag.style.backgroundColor = color;
-            tag.innerHTML = `${text}<div class="signature">— ${signature}</div>`;
             tag.style.left = `${x}px`;
             tag.style.top = `${y}px`;
 
-            // 添加随机倾斜角度 (±10°)
-            const angle = Math.random() * 20 - 10; // 生成 -10° 到 +10° 的随机角度
+            const textNode = document.createElement('div');
+            textNode.textContent = text;
+            const sigNode = document.createElement('div');
+            sigNode.className = 'signature';
+            sigNode.textContent = `— ${signature}`;
+            tag.appendChild(textNode);
+            tag.appendChild(sigNode);
+
+            const angle = Math.random() * 20 - 10;
             tag.style.transform = `rotate(${angle}deg)`;
 
             document.body.appendChild(tag);
 
-            // 独立拖动逻辑
             let isDragging = false;
             let currentX, currentY;
 
@@ -319,7 +333,15 @@
                 isDragging = true;
                 currentX = e.clientX - parseInt(tag.style.left);
                 currentY = e.clientY - parseInt(tag.style.top);
-                e.preventDefault(); // 防止文本选中
+                e.preventDefault();
+            });
+
+            tag.addEventListener('touchstart', function(e) {
+                isDragging = true;
+                const touch = e.touches[0];
+                currentX = touch.clientX - parseInt(tag.style.left);
+                currentY = touch.clientY - parseInt(tag.style.top);
+                e.preventDefault();
             });
 
             tag.addEventListener('mousemove', function(e) {
@@ -335,7 +357,33 @@
                     const inputLeft = inputArea.offsetLeft;
 
                     if (newX < 0) newX = 0;
-                    if (newY < 100) newY = 100; // 避开顶部标题
+                    if (newY < 100) newY = 100;
+                    if (newX > maxX) newX = maxX;
+                    if (newY > maxY) newY = maxY;
+                    if (newY < inputTop + inputHeight && newY + tag.offsetHeight > inputTop && newX < inputLeft + inputWidth && newX + tag.offsetWidth > inputLeft) {
+                        newY = newY < inputTop + inputHeight / 2 ? inputTop - tag.offsetHeight : inputTop + inputHeight;
+                    }
+
+                    tag.style.left = `${newX}px`;
+                    tag.style.top = `${newY}px`;
+                }
+            });
+
+            tag.addEventListener('touchmove', function(e) {
+                if (isDragging) {
+                    const touch = e.touches[0];
+                    let newX = touch.clientX - currentX;
+                    let newY = touch.clientY - currentY;
+                    const maxX = window.innerWidth - tag.offsetWidth;
+                    const maxY = window.innerHeight - tag.offsetHeight;
+                    const inputArea = document.querySelector('.input-area');
+                    const inputHeight = inputArea.offsetHeight + 60;
+                    const inputWidth = inputArea.offsetWidth;
+                    const inputTop = inputArea.offsetTop;
+                    const inputLeft = inputArea.offsetLeft;
+
+                    if (newX < 0) newX = 0;
+                    if (newY < 100) newY = 100;
                     if (newX > maxX) newX = maxX;
                     if (newY > maxY) newY = maxY;
                     if (newY < inputTop + inputHeight && newY + tag.offsetHeight > inputTop && newX < inputLeft + inputWidth && newX + tag.offsetWidth > inputLeft) {
@@ -351,13 +399,16 @@
                 isDragging = false;
             });
 
-            // 确保鼠标离开标签时停止拖动
+            tag.addEventListener('touchend', function() {
+                isDragging = false;
+            });
+
             tag.addEventListener('mouseleave', function() {
                 isDragging = false;
             });
         }
 
-        // 分享最新表白到 Twitter
+        // 分享到 X
         function shareLastConfession() {
             if (!lastConfession) {
                 alert('请先添加一个表白！');
@@ -366,7 +417,7 @@
 
             const tweetText = `${lastConfession.text} — ${lastConfession.signature} (来自 Sign的表白墙)`;
             const tweetUrl = 'https://signlove.netlify.app/';
-            const url = `https://twitter.com/intent/tweet?text=${encodeURIComponent(tweetText)}&url=${encodeURIComponent(tweetUrl)}`;
+            const url = `https://x.com/intent/tweet?text=${encodeURIComponent(tweetText)}&url=${encodeURIComponent(tweetUrl)}`;
             window.open(url, '_blank');
         }
     </script>
