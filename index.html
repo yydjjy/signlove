@@ -223,28 +223,63 @@
             }
         }
 
-        // 获取随机位置
+        // 获取随机位置，确保不与输入框重叠
         function getRandomPosition() {
-            const maxX = window.innerWidth - 200;
-            const maxY = window.innerHeight - 100;
+            const maxX = window.innerWidth - 200; // 标签宽度
+            const maxY = window.innerHeight - 100; // 标签高度
             const inputArea = document.querySelector('.input-area');
-            const inputHeight = inputArea.offsetHeight + 60;
-            const inputWidth = inputArea.offsetWidth;
-            const inputTop = inputArea.offsetTop;
-            const inputLeft = inputArea.offsetLeft;
+            const rect = inputArea.getBoundingClientRect();
+            const buffer = 10; // 安全边距
+
+            // 输入框的实际边界
+            const inputLeft = rect.left - buffer;
+            const inputRight = rect.right + buffer;
+            const inputTop = rect.top - buffer;
+            const inputBottom = rect.bottom + buffer;
 
             let x, y;
+            let attempts = 0;
+            const maxAttempts = 50; // 最大尝试次数，防止无限循环
+
             do {
                 x = Math.random() * maxX;
                 y = Math.random() * maxY;
+
+                // 确保标签不超出页面边界
                 if (x < 0) x = 0;
-                if (y < 100) y = 100;
+                if (y < 100) y = 100; // 避开顶部标题区域
                 if (y > maxY) y = maxY;
+
+                attempts++;
+                if (attempts > maxAttempts) {
+                    console.warn("无法找到合适位置，尝试智能调整");
+                    // 智能调整：优先尝试输入框上方、左侧、右侧
+                    const spaceAbove = inputTop - 100; // 输入框上方空间
+                    const spaceLeft = inputLeft; // 输入框左侧空间
+                    const spaceRight = window.innerWidth - inputRight; // 输入框右侧空间
+
+                    // 优先选择空间较大的区域
+                    if (spaceAbove > 100) {
+                        y = Math.random() * (spaceAbove - 100) + 100; // 上方区域
+                        x = Math.random() * maxX;
+                    } else if (spaceLeft > spaceRight) {
+                        x = Math.random() * (spaceLeft - 200); // 左侧区域
+                        y = Math.random() * maxY;
+                    } else {
+                        x = inputRight + Math.random() * (spaceRight - 200); // 右侧区域
+                        y = Math.random() * maxY;
+                    }
+
+                    console.log("调整后位置:", { x, y });
+                    break;
+                }
             } while (
-                (x < inputLeft + inputWidth && x + 200 > inputLeft) &&
-                (y < inputTop + inputHeight && y + 50 > inputTop)
+                // 检查标签的任何部分是否与输入框区域重叠
+                x + 200 > inputLeft && x < inputRight &&
+                y + 50 > inputTop && y < inputBottom
             );
 
+            console.log("随机位置生成:", { x, y });
             return { x, y };
         }
 
@@ -328,10 +363,11 @@
                     const maxX = window.innerWidth - tag.offsetWidth;
                     const maxY = window.innerHeight - tag.offsetHeight;
                     const inputArea = document.querySelector('.input-area');
-                    const inputHeight = inputArea.offsetHeight + 60;
-                    const inputWidth = inputArea.offsetWidth;
-                    const inputTop = inputArea.offsetTop;
-                    const inputLeft = inputArea.offsetLeft;
+                    const rect = inputArea.getBoundingClientRect();
+                    const inputHeight = rect.height;
+                    const inputWidth = rect.width;
+                    const inputTop = rect.top;
+                    const inputLeft = rect.left;
 
                     if (newX < 0) newX = 0;
                     if (newY < 100) newY = 100;
@@ -354,10 +390,11 @@
                     const maxX = window.innerWidth - tag.offsetWidth;
                     const maxY = window.innerHeight - tag.offsetHeight;
                     const inputArea = document.querySelector('.input-area');
-                    const inputHeight = inputArea.offsetHeight + 60;
-                    const inputWidth = inputArea.offsetWidth;
-                    const inputTop = inputArea.offsetTop;
-                    const inputLeft = inputArea.offsetLeft;
+                    const rect = inputArea.getBoundingClientRect();
+                    const inputHeight = rect.height;
+                    const inputWidth = rect.width;
+                    const inputTop = rect.top;
+                    const inputLeft = rect.left;
 
                     if (newX < 0) newX = 0;
                     if (newY < 100) newY = 100;
@@ -386,15 +423,15 @@
         }
 
         // 分享到 X
-        function shareLastConfession() {
+        function shareLastConfession(confessionToShare) {
             console.log("shareLastConfession 函数被调用");
-            if (!lastConfession) {
-                alert('请先添加一个表白！');
+            if (!confessionToShare) {
+                alert('没有可分享的表白！');
                 console.log("没有表白数据可分享");
                 return;
             }
 
-            const tweetText = `${lastConfession.text} — ${lastConfession.signature} (来自 Sign的表白墙)`;
+            const tweetText = `${confessionToShare.text} — ${confessionToShare.signature} (来自 Sign的表白墙)`;
             const tweetUrl = 'https://signlove.netlify.app/';
             const url = `https://x.com/intent/tweet?text=${encodeURIComponent(tweetText)}&url=${encodeURIComponent(tweetUrl)}`;
             window.open(url, '_blank');
@@ -428,6 +465,9 @@
                 checkLimit(this, 20);
             });
 
+            // 存储所有表白，用于分享最新一条
+            let allConfessions = [];
+
             // 绑定表白按钮
             confessButton.addEventListener('click', () => {
                 console.log("表白按钮被点击");
@@ -437,7 +477,8 @@
             // 绑定分享按钮
             shareButton.addEventListener('click', () => {
                 console.log("分享按钮被点击");
-                shareLastConfession();
+                const confessionToShare = lastConfession || (allConfessions.length > 0 ? allConfessions[allConfessions.length - 1] : null);
+                shareLastConfession(confessionToShare);
             });
 
             // 初始化示例表白
@@ -470,12 +511,14 @@
             onValue(confessionsRef, (snapshot) => {
                 console.log("加载表白数据");
                 document.querySelectorAll('.confession-tag').forEach(tag => tag.remove());
+                allConfessions = [];
                 const confessions = snapshot.val();
                 if (confessions) {
                     Object.entries(confessions).forEach(([id, conf]) => {
                         createTag(conf.text, conf.signature, conf.x, conf.y, conf.color || colors[Math.floor(Math.random() * colors.length)]);
+                        allConfessions.push(conf);
                     });
-                    console.log("表白数据加载完成");
+                    console.log("表白数据加载完成，共有", allConfessions.length, "条表白");
                 } else {
                     console.log("没有表白数据");
                 }
