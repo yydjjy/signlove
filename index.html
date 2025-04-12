@@ -9,8 +9,7 @@
             margin: 0;
             padding: 0;
             background-color: #ff9800;
-            height: 100vh;
-            overflow: hidden;
+            min-height: 100vh;
             font-family: 'Arial', sans-serif;
         }
 
@@ -136,6 +135,7 @@
             cursor: move;
             user-select: none;
             z-index: 1;
+            box-sizing: border-box;
         }
 
         .signature {
@@ -144,6 +144,31 @@
             margin-top: 5px;
             font-style: italic;
             color: #808080;
+        }
+
+        @media (max-width: 768px) {
+            .input-area {
+                width: 90%;
+                max-width: 400px;
+            }
+
+            .title {
+                font-size: 40px;
+            }
+
+            .heart {
+                font-size: 40px;
+            }
+
+            .confession-tag {
+                max-width: 150px;
+                font-size: 14px;
+                padding: 10px;
+            }
+
+            .signature {
+                font-size: 10px;
+            }
         }
     </style>
 </head>
@@ -163,12 +188,10 @@
     <div class="quote">每一份表白都是心底最真挚的感情</div>
 
     <script type="module">
-        // 使用 ES 模块方式加载 Firebase SDK
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-app.js";
         import { getAnalytics } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-analytics.js";
-        import { getDatabase, ref, push, onValue } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-database.js";
+        import { getDatabase, ref, push, onValue, update } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-database.js";
 
-        // Firebase 配置
         const firebaseConfig = {
             apiKey: "AIzaSyBSenViJcE17Vd58s7ujJENXLCQSaxwaNY",
             authDomain: "signlove-47ea3.firebaseapp.com",
@@ -179,7 +202,6 @@
             measurementId: "G-4LNYF3FMEC"
         };
 
-        // 初始化 Firebase
         let app;
         try {
             app = initializeApp(firebaseConfig);
@@ -192,7 +214,6 @@
         const db = getDatabase(app);
         const confessionsRef = ref(db, 'confessions');
 
-        // 随机颜色数组
         const colors = [
             'rgba(255, 224, 224, 0.9)',
             'rgba(255, 255, 224, 0.9)',
@@ -201,7 +222,6 @@
             'rgba(255, 224, 224, 0.9)'
         ];
 
-        // 示例表白数据
         const sampleMessages = [
             { message: "我喜欢你，像风走了八千里，不问归期", signature: "匿名" },
             { message: "你是我生命中最美的风景", signature: "小星星" },
@@ -215,7 +235,6 @@
 
         let lastConfession = null;
 
-        // 检查字数并提醒
         function checkLimit(element, maxLength) {
             const value = element.value;
             if (value.length >= maxLength) {
@@ -223,67 +242,54 @@
             }
         }
 
-        // 获取随机位置，确保不与输入框重叠
         function getRandomPosition() {
-            const maxX = window.innerWidth - 200; // 标签宽度
-            const maxY = window.innerHeight - 100; // 标签高度
+            const tagWidth = 200;
+            const tagHeight = 100;
+            const buffer = 10;
+
+            const maxX = Math.max(0, window.innerWidth - tagWidth - buffer);
+            const maxY = Math.max(0, window.innerHeight - tagHeight - buffer);
+
             const inputArea = document.querySelector('.input-area');
             const rect = inputArea.getBoundingClientRect();
-            const buffer = 10; // 安全边距
-
-            // 输入框的实际边界
-            const inputLeft = rect.left - buffer;
-            const inputRight = rect.right + buffer;
-            const inputTop = rect.top - buffer;
-            const inputBottom = rect.bottom + buffer;
+            const inputLeft = rect.left;
+            const inputRight = rect.right;
+            const inputTop = rect.top;
+            const inputBottom = rect.bottom;
 
             let x, y;
             let attempts = 0;
-            const maxAttempts = 50; // 最大尝试次数，防止无限循环
+            const maxAttempts = 50;
 
             do {
-                x = Math.random() * maxX;
-                y = Math.random() * maxY;
-
-                // 确保标签不超出页面边界
-                if (x < 0) x = 0;
-                if (y < 100) y = 100; // 避开顶部标题区域
-                if (y > maxY) y = maxY;
+                x = Math.floor(Math.random() * maxX);
+                y = Math.floor(Math.random() * (maxY - 100)) + 100;
 
                 attempts++;
                 if (attempts > maxAttempts) {
-                    console.warn("无法找到合适位置，尝试智能调整");
-                    // 智能调整：优先尝试输入框上方、左侧、右侧
-                    const spaceAbove = inputTop - 100; // 输入框上方空间
-                    const spaceLeft = inputLeft; // 输入框左侧空间
-                    const spaceRight = window.innerWidth - inputRight; // 输入框右侧空间
-
-                    // 优先选择空间较大的区域
-                    if (spaceAbove > 100) {
-                        y = Math.random() * (spaceAbove - 100) + 100; // 上方区域
-                        x = Math.random() * maxX;
-                    } else if (spaceLeft > spaceRight) {
-                        x = Math.random() * (spaceLeft - 200); // 左侧区域
-                        y = Math.random() * maxY;
+                    if (inputTop > 200) {
+                        x = Math.min(Math.floor(Math.random() * maxX), maxX);
+                        y = Math.floor(Math.random() * (inputTop - tagHeight - buffer - 100)) + 100;
                     } else {
-                        x = inputRight + Math.random() * (spaceRight - 200); // 右侧区域
-                        y = Math.random() * maxY;
+                        x = Math.min(Math.floor(Math.random() * maxX), maxX);
+                        y = Math.floor(inputBottom + buffer + Math.random() * (maxY - inputBottom));
                     }
-
-                    console.log("调整后位置:", { x, y });
                     break;
                 }
             } while (
-                // 检查标签的任何部分是否与输入框区域重叠
-                x + 200 > inputLeft && x < inputRight &&
-                y + 50 > inputTop && y < inputBottom
+                x + tagWidth > inputLeft &&
+                x < inputRight &&
+                y + tagHeight > inputTop &&
+                y < inputBottom
             );
+
+            x = Math.max(0, Math.min(x, maxX));
+            y = Math.max(100, Math.min(y, maxY));
 
             console.log("随机位置生成:", { x, y });
             return { x, y };
         }
 
-        // 添加表白
         function addConfession() {
             console.log("addConfession 函数被调用");
 
@@ -317,7 +323,6 @@
             });
         }
 
-        // 创建表白标签
         function createTag(text, signature, x, y, color) {
             const tag = document.createElement('div');
             tag.className = 'confession-tag';
@@ -362,20 +367,9 @@
                     let newY = e.clientY - currentY;
                     const maxX = window.innerWidth - tag.offsetWidth;
                     const maxY = window.innerHeight - tag.offsetHeight;
-                    const inputArea = document.querySelector('.input-area');
-                    const rect = inputArea.getBoundingClientRect();
-                    const inputHeight = rect.height;
-                    const inputWidth = rect.width;
-                    const inputTop = rect.top;
-                    const inputLeft = rect.left;
 
-                    if (newX < 0) newX = 0;
-                    if (newY < 100) newY = 100;
-                    if (newX > maxX) newX = maxX;
-                    if (newY > maxY) newY = maxY;
-                    if (newY < inputTop + inputHeight && newY + tag.offsetHeight > inputTop && newX < inputLeft + inputWidth && newX + tag.offsetWidth > inputLeft) {
-                        newY = newY < inputTop + inputHeight / 2 ? inputTop - tag.offsetHeight : inputTop + inputHeight;
-                    }
+                    newX = Math.max(0, Math.min(newX, maxX));
+                    newY = Math.max(100, Math.min(newY, maxY));
 
                     tag.style.left = `${newX}px`;
                     tag.style.top = `${newY}px`;
@@ -389,20 +383,9 @@
                     let newY = touch.clientY - currentY;
                     const maxX = window.innerWidth - tag.offsetWidth;
                     const maxY = window.innerHeight - tag.offsetHeight;
-                    const inputArea = document.querySelector('.input-area');
-                    const rect = inputArea.getBoundingClientRect();
-                    const inputHeight = rect.height;
-                    const inputWidth = rect.width;
-                    const inputTop = rect.top;
-                    const inputLeft = rect.left;
 
-                    if (newX < 0) newX = 0;
-                    if (newY < 100) newY = 100;
-                    if (newX > maxX) newX = maxX;
-                    if (newY > maxY) newY = maxY;
-                    if (newY < inputTop + inputHeight && newY + tag.offsetHeight > inputTop && newX < inputLeft + inputWidth && newX + tag.offsetWidth > inputLeft) {
-                        newY = newY < inputTop + inputHeight / 2 ? inputTop - tag.offsetHeight : inputTop + inputHeight;
-                    }
+                    newX = Math.max(0, Math.min(newX, maxX));
+                    newY = Math.max(100, Math.min(newY, maxY));
 
                     tag.style.left = `${newX}px`;
                     tag.style.top = `${newY}px`;
@@ -422,7 +405,6 @@
             });
         }
 
-        // 分享到 X
         function shareLastConfession(confessionToShare) {
             console.log("shareLastConfession 函数被调用");
             if (!confessionToShare) {
@@ -438,11 +420,9 @@
             console.log("分享链接:", url);
         }
 
-        // 确保 DOM 加载完成后再绑定事件和初始化
         document.addEventListener('DOMContentLoaded', () => {
             console.log("DOM 加载完成");
 
-            // 绑定输入框事件
             const confessionInput = document.getElementById('confessionInput');
             const signatureInput = document.getElementById('signatureInput');
             const confessButton = document.getElementById('confessButton');
@@ -465,23 +445,19 @@
                 checkLimit(this, 20);
             });
 
-            // 存储所有表白，用于分享最新一条
             let allConfessions = [];
 
-            // 绑定表白按钮
             confessButton.addEventListener('click', () => {
                 console.log("表白按钮被点击");
                 addConfession();
             });
 
-            // 绑定分享按钮
             shareButton.addEventListener('click', () => {
                 console.log("分享按钮被点击");
                 const confessionToShare = lastConfession || (allConfessions.length > 0 ? allConfessions[allConfessions.length - 1] : null);
                 shareLastConfession(confessionToShare);
             });
 
-            // 初始化示例表白
             onValue(confessionsRef, (snapshot) => {
                 if (!snapshot.exists()) {
                     console.log("数据库为空，初始化示例表白");
@@ -507,7 +483,6 @@
                 }
             }, { onlyOnce: true });
 
-            // 加载表白
             onValue(confessionsRef, (snapshot) => {
                 console.log("加载表白数据");
                 document.querySelectorAll('.confession-tag').forEach(tag => tag.remove());
@@ -515,8 +490,35 @@
                 const confessions = snapshot.val();
                 if (confessions) {
                     Object.entries(confessions).forEach(([id, conf]) => {
-                        createTag(conf.text, conf.signature, conf.x, conf.y, conf.color || colors[Math.floor(Math.random() * colors.length)]);
-                        allConfessions.push(conf);
+                        const tagWidth = 200;
+                        const tagHeight = 100;
+                        const maxX = Math.max(0, window.innerWidth - tagWidth);
+                        const maxY = Math.max(0, window.innerHeight - tagHeight);
+                        let newX = conf.x;
+                        let newY = conf.y;
+
+                        if (newX < 0 || newX > maxX) {
+                            newX = Math.min(Math.max(0, newX), maxX);
+                            console.log(`调整X坐标: ${conf.x} -> ${newX} for ${conf.text}`);
+                        }
+                        if (newY < 100 || newY > maxY) {
+                            newY = Math.min(Math.max(100, newY), maxY);
+                            console.log(`调整Y坐标: ${conf.y} -> ${newY} for ${conf.text}`);
+                        }
+
+                        if (newX !== conf.x || newY !== conf.y) {
+                            const confessionRef = ref(db, `confessions/${id}`);
+                            update(confessionRef, { x: newX, y: newY }, (error) => {
+                                if (error) {
+                                    console.error(`更新坐标失败 for ${conf.text}:`, error);
+                                } else {
+                                    console.log(`更新坐标成功 for ${conf.text}: x=${newX}, y=${newY}`);
+                                }
+                            });
+                        }
+
+                        createTag(conf.text, conf.signature, newX, newY, conf.color || colors[Math.floor(Math.random() * colors.length)]);
+                        allConfessions.push({ ...conf, x: newX, y: newY });
                     });
                     console.log("表白数据加载完成，共有", allConfessions.length, "条表白");
                 } else {
