@@ -162,29 +162,28 @@
     <div class="credit">Made by @carmel_qveen27</div>
     <div class="quote">每一份表白都是心底最真挚的感情</div>
 
-<script type="module">
-  // Import the functions you need from the SDKs you need
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-app.js";
-  import { getAnalytics } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-analytics.js";
-  // TODO: Add SDKs for Firebase products that you want to use
-  // https://firebase.google.com/docs/web/setup#available-libraries
+    <script type="module">
+        // 使用 ES 模块方式加载 Firebase SDK
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-app.js";
+        import { getAnalytics } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-analytics.js";
+        import { getDatabase, ref, push, onValue } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-database.js";
 
-  // Your web app's Firebase configuration
-  // For Firebase JS SDK v7.20.0 and later, measurementId is optional
-  const firebaseConfig = {
-    apiKey: "AIzaSyBSenViJcE17Vd58s7ujJENXLCQSaxwaNY",
-    authDomain: "signlove-47ea3.firebaseapp.com",
-    projectId: "signlove-47ea3",
-    storageBucket: "signlove-47ea3.firebasestorage.app",
-    messagingSenderId: "106808988453",
-    appId: "1:106808988453:web:90044aad64d19bba17c0cc",
-    measurementId: "G-4LNYF3FMEC"
-  };
+        // Firebase 配置
+        const firebaseConfig = {
+            apiKey: "AIzaSyBSenViJcE17Vd58s7ujJENXLCQSaxwaNY",
+            authDomain: "signlove-47ea3.firebaseapp.com",
+            projectId: "signlove-47ea3",
+            storageBucket: "signlove-47ea3.firebasestorage.app",
+            messagingSenderId: "106808988453",
+            appId: "1:106808988453:web:90044aad64d19bba17c0cc",
+            measurementId: "G-4LNYF3FMEC"
+        };
 
-  // Initialize Firebase
-  const app = initializeApp(firebaseConfig);
-  const analytics = getAnalytics(app);
-</script>
+        // 初始化 Firebase
+        const app = initializeApp(firebaseConfig);
+        const analytics = getAnalytics(app);
+        const db = getDatabase(app);
+        const confessionsRef = ref(db, 'confessions');
 
         // 随机颜色数组
         const colors = [
@@ -217,12 +216,21 @@
             }
         }
 
-        // 绑定输入框事件
-        document.getElementById('confessionInput').addEventListener('input', function() {
-            checkLimit(this, 200);
-        });
-        document.getElementById('signatureInput').addEventListener('input', function() {
-            checkLimit(this, 20);
+        // 确保 DOM 加载完成后再绑定事件
+        document.addEventListener('DOMContentLoaded', () => {
+            const confessionInput = document.getElementById('confessionInput');
+            const signatureInput = document.getElementById('signatureInput');
+
+            if (confessionInput && signatureInput) {
+                confessionInput.addEventListener('input', function() {
+                    checkLimit(this, 200);
+                });
+                signatureInput.addEventListener('input', function() {
+                    checkLimit(this, 20);
+                });
+            } else {
+                console.error('无法找到 confessionInput 或 signatureInput 元素');
+            }
         });
 
         // 获取随机位置
