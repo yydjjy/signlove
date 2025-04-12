@@ -323,12 +323,13 @@
             });
         }
 
-        function createTag(text, signature, x, y, color) {
+        function createTag(text, signature, x, y, color, id) {
             const tag = document.createElement('div');
             tag.className = 'confession-tag';
             tag.style.backgroundColor = color;
             tag.style.left = `${x}px`;
             tag.style.top = `${y}px`;
+            tag.dataset.id = id;
 
             const textNode = document.createElement('div');
             textNode.textContent = text;
@@ -393,11 +394,35 @@
             });
 
             tag.addEventListener('mouseup', function() {
-                isDragging = false;
+                if (isDragging) {
+                    isDragging = false;
+                    const newX = parseInt(tag.style.left);
+                    const newY = parseInt(tag.style.top);
+                    const confessionRef = ref(db, `confessions/${id}`);
+                    update(confessionRef, { x: newX, y: newY }, (error) => {
+                        if (error) {
+                            console.error(`更新坐标失败 for ID ${id}:`, error);
+                        } else {
+                            console.log(`更新坐标成功 for ID ${id}: x=${newX}, y=${newY}`);
+                        }
+                    });
+                }
             });
 
             tag.addEventListener('touchend', function() {
-                isDragging = false;
+                if (isDragging) {
+                    isDragging = false;
+                    const newX = parseInt(tag.style.left);
+                    const newY = parseInt(tag.style.top);
+                    const confessionRef = ref(db, `confessions/${id}`);
+                    update(confessionRef, { x: newX, y: newY }, (error) => {
+                        if (error) {
+                            console.error(`更新坐标失败 for ID ${id}:`, error);
+                        } else {
+                            console.log(`更新坐标成功 for ID ${id}: x=${newX}, y=${newY}`);
+                        }
+                    });
+                }
             });
 
             tag.addEventListener('mouseleave', function() {
@@ -517,7 +542,7 @@
                             });
                         }
 
-                        createTag(conf.text, conf.signature, newX, newY, conf.color || colors[Math.floor(Math.random() * colors.length)]);
+                        createTag(conf.text, conf.signature, newX, newY, conf.color || colors[Math.floor(Math.random() * colors.length)], id);
                         allConfessions.push({ ...conf, x: newX, y: newY });
                     });
                     console.log("表白数据加载完成，共有", allConfessions.length, "条表白");
