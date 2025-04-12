@@ -11,6 +11,8 @@
             background-color: #ff9800;
             min-height: 100vh;
             font-family: 'Arial', sans-serif;
+            width: 100%;
+            overflow: auto;
         }
 
         .header {
@@ -234,6 +236,8 @@
         ];
 
         let lastConfession = null;
+        let allConfessions = [];
+        const renderedTags = new Map();
 
         function checkLimit(element, maxLength) {
             const value = element.value;
@@ -246,6 +250,8 @@
             const tagWidth = 200;
             const tagHeight = 100;
             const buffer = 10;
+            const referenceWidth = 1920;
+            const referenceHeight = 1080;
 
             const maxX = Math.max(0, window.innerWidth - tagWidth - buffer);
             const maxY = Math.max(0, window.innerHeight - tagHeight - buffer);
@@ -286,8 +292,11 @@
             x = Math.max(0, Math.min(x, maxX));
             y = Math.max(100, Math.min(y, maxY));
 
-            console.log("随机位置生成:", { x, y });
-            return { x, y };
+            const xPercent = (x / window.innerWidth) * 100;
+            const yPercent = (y / window.innerHeight) * 100;
+
+            console.log("随机位置生成:", { x, y, xPercent, yPercent });
+            return { xPercent, yPercent };
         }
 
         function addConfession() {
@@ -304,9 +313,9 @@
 
             console.log("表白内容:", confessionText, "签名:", signatureText);
 
-            const { x, y } = getRandomPosition();
+            const { xPercent, yPercent } = getRandomPosition();
             const randomColor = colors[Math.floor(Math.random() * colors.length)];
-            const newConfession = { text: confessionText, signature: signatureText, x: x, y: y, color: randomColor };
+            const newConfession = { text: confessionText, signature: signatureText, xPercent, yPercent, color: randomColor };
 
             console.log("新表白数据:", newConfession);
 
@@ -323,13 +332,19 @@
             });
         }
 
-        function createTag(text, signature, x, y, color, id) {
+        function createTag(text, signature, xPercent, yPercent, color, id) {
             const tag = document.createElement('div');
             tag.className = 'confession-tag';
             tag.style.backgroundColor = color;
+            tag.dataset.id = id;
+
+            const referenceWidth = 1920;
+            const referenceHeight = 1080;
+
+            const x = (xPercent / 100) * window.innerWidth;
+            const y = (yPercent / 100) * window.innerHeight;
             tag.style.left = `${x}px`;
             tag.style.top = `${y}px`;
-            tag.dataset.id = id;
 
             const textNode = document.createElement('div');
             textNode.textContent = text;
@@ -346,6 +361,25 @@
 
             let isDragging = false;
             let currentX, currentY;
+
+            const debounce = (func, wait) => {
+                let timeout;
+                return (...args) => {
+                    clearTimeout(timeout);
+                    timeout = setTimeout(() => func(...args), wait);
+                };
+            };
+
+            const updatePosition = debounce((newXPercent, newYPercent) => {
+                const confessionRef = ref(db, `confessions/${id}`);
+                update(confessionRef, { xPercent: newXPercent, yPercent: newYPercent }, (error) => {
+                    if (error) {
+                        console.error(`更新坐标失败 for ID ${id}:`, error);
+                    } else {
+                        console.log(`更新坐标成功 for ID ${id}: xPercent=${newXPercent}, yPercent=${newYPercent}`);
+                    }
+                });
+            }, 500);
 
             tag.addEventListener('mousedown', function(e) {
                 isDragging = true;
@@ -366,11 +400,11 @@
                 if (isDragging) {
                     let newX = e.clientX - currentX;
                     let newY = e.clientY - currentY;
-                    const maxX = window.innerWidth - tag.offsetWidth;
-                    const maxY = window.innerHeight - tag.offsetHeight;
+                    const maxX = (referenceWidth - tag.offsetWidth) * (window.innerWidth / referenceWidth);
+                    const maxY = (referenceHeight - tag.offsetHeight) * (window.innerHeight / referenceHeight);
 
                     newX = Math.max(0, Math.min(newX, maxX));
-                    newY = Math.max(100, Math.min(newY, maxY));
+                    newY = Math.max(100 * (window.innerHeight / referenceHeight), Math.min(newY, maxY));
 
                     tag.style.left = `${newX}px`;
                     tag.style.top = `${newY}px`;
@@ -382,11 +416,11 @@
                     const touch = e.touches[0];
                     let newX = touch.clientX - currentX;
                     let newY = touch.clientY - currentY;
-                    const maxX = window.innerWidth - tag.offsetWidth;
-                    const maxY = window.innerHeight - tag.offsetHeight;
+                    const maxX = (referenceWidth - tag.offsetWidth) * (window.innerWidth / referenceWidth);
+                    const maxY = (referenceHeight - tag.offsetHeight) * (window.innerHeight / referenceHeight);
 
                     newX = Math.max(0, Math.min(newX, maxX));
-                    newY = Math.max(100, Math.min(newY, maxY));
+                    newY = Math.max(100 * (window.innerHeight / referenceHeight), Math.min(newY, maxY));
 
                     tag.style.left = `${newX}px`;
                     tag.style.top = `${newY}px`;
@@ -398,14 +432,9 @@
                     isDragging = false;
                     const newX = parseInt(tag.style.left);
                     const newY = parseInt(tag.style.top);
-                    const confessionRef = ref(db, `confessions/${id}`);
-                    update(confessionRef, { x: newX, y: newY }, (error) => {
-                        if (error) {
-                            console.error(`更新坐标失败 for ID ${id}:`, error);
-                        } else {
-                            console.log(`更新坐标成功 for ID ${id}: x=${newX}, y=${newY}`);
-                        }
-                    });
+                    const newXPercent = (newX / window.innerWidth) * 100;
+                    const newYPercent = (newY / window.innerHeight) * 100;
+                    updatePosition(newXPercent, newYPercent);
                 }
             });
 
@@ -414,20 +443,17 @@
                     isDragging = false;
                     const newX = parseInt(tag.style.left);
                     const newY = parseInt(tag.style.top);
-                    const confessionRef = ref(db, `confessions/${id}`);
-                    update(confessionRef, { x: newX, y: newY }, (error) => {
-                        if (error) {
-                            console.error(`更新坐标失败 for ID ${id}:`, error);
-                        } else {
-                            console.log(`更新坐标成功 for ID ${id}: x=${newX}, y=${newY}`);
-                        }
-                    });
+                    const newXPercent = (newX / window.innerWidth) * 100;
+                    const newYPercent = (newY / window.innerHeight) * 100;
+                    updatePosition(newXPercent, newYPercent);
                 }
             });
 
             tag.addEventListener('mouseleave', function() {
                 isDragging = false;
             });
+
+            return tag;
         }
 
         function shareLastConfession(confessionToShare) {
@@ -470,8 +496,6 @@
                 checkLimit(this, 20);
             });
 
-            let allConfessions = [];
-
             confessButton.addEventListener('click', () => {
                 console.log("表白按钮被点击");
                 addConfession();
@@ -487,13 +511,13 @@
                 if (!snapshot.exists()) {
                     console.log("数据库为空，初始化示例表白");
                     sampleMessages.forEach(sample => {
-                        const { x, y } = getRandomPosition();
+                        const { xPercent, yPercent } = getRandomPosition();
                         const randomColor = colors[Math.floor(Math.random() * colors.length)];
                         push(confessionsRef, {
                             text: sample.message,
                             signature: sample.signature,
-                            x: x,
-                            y: y,
+                            xPercent,
+                            yPercent,
                             color: randomColor
                         }, (error) => {
                             if (error) {
@@ -510,44 +534,59 @@
 
             onValue(confessionsRef, (snapshot) => {
                 console.log("加载表白数据");
-                document.querySelectorAll('.confession-tag').forEach(tag => tag.remove());
-                allConfessions = [];
                 const confessions = snapshot.val();
+                const newIds = new Set(confessions ? Object.keys(confessions) : []);
+
+                for (const [id, tag] of renderedTags) {
+                    if (!newIds.has(id)) {
+                        tag.remove();
+                        renderedTags.delete(id);
+                        console.log(`删除标签 ID: ${id}`);
+                    }
+                }
+
+                allConfessions = [];
                 if (confessions) {
                     Object.entries(confessions).forEach(([id, conf]) => {
-                        const tagWidth = 200;
-                        const tagHeight = 100;
-                        const maxX = Math.max(0, window.innerWidth - tagWidth);
-                        const maxY = Math.max(0, window.innerHeight - tagHeight);
-                        let newX = conf.x;
-                        let newY = conf.y;
-
-                        if (newX < 0 || newX > maxX) {
-                            newX = Math.min(Math.max(0, newX), maxX);
-                            console.log(`调整X坐标: ${conf.x} -> ${newX} for ${conf.text}`);
-                        }
-                        if (newY < 100 || newY > maxY) {
-                            newY = Math.min(Math.max(100, newY), maxY);
-                            console.log(`调整Y坐标: ${conf.y} -> ${newY} for ${conf.text}`);
-                        }
-
-                        if (newX !== conf.x || newY !== conf.y) {
+                        let xPercent = conf.xPercent;
+                        let yPercent = conf.yPercent;
+                        if (conf.x !== undefined && conf.y !== undefined && xPercent === undefined && yPercent === undefined) {
+                            const referenceWidth = 1920;
+                            const referenceHeight = 1080;
+                            xPercent = (conf.x / referenceWidth) * 100;
+                            yPercent = (conf.y / referenceHeight) * 100;
                             const confessionRef = ref(db, `confessions/${id}`);
-                            update(confessionRef, { x: newX, y: newY }, (error) => {
+                            update(confessionRef, { xPercent, yPercent, x: null, y: null }, (error) => {
                                 if (error) {
-                                    console.error(`更新坐标失败 for ${conf.text}:`, error);
+                                    console.error(`更新旧坐标失败 for ${conf.text}:`, error);
                                 } else {
-                                    console.log(`更新坐标成功 for ${conf.text}: x=${newX}, y=${newY}`);
+                                    console.log(`更新旧坐标成功 for ${conf.text}: xPercent=${xPercent}, yPercent=${yPercent}`);
                                 }
                             });
                         }
 
-                        createTag(conf.text, conf.signature, newX, newY, conf.color || colors[Math.floor(Math.random() * colors.length)], id);
-                        allConfessions.push({ ...conf, x: newX, y: newY });
+                        if (renderedTags.has(id)) {
+                            const tag = renderedTags.get(id);
+                            const newX = (xPercent / 100) * window.innerWidth;
+                            const newY = (yPercent / 100) * window.innerHeight;
+                            tag.style.left = `${newX}px`;
+                            tag.style.top = `${newY}px`;
+                            tag.querySelector('div').textContent = conf.text;
+                            tag.querySelector('.signature').textContent = `— ${conf.signature}`;
+                            tag.style.backgroundColor = conf.color || colors[Math.floor(Math.random() * colors.length)];
+                            console.log(`更新标签 ID: ${id}, xPercent=${xPercent}, yPercent=${yPercent}`);
+                        } else {
+                            const tag = createTag(conf.text, conf.signature, xPercent, yPercent, conf.color || colors[Math.floor(Math.random() * colors.length)], id);
+                            renderedTags.set(id, tag);
+                            console.log(`创建标签 ID: ${id}, xPercent=${xPercent}, yPercent=${yPercent}`);
+                        }
+                        allConfessions.push(conf);
                     });
                     console.log("表白数据加载完成，共有", allConfessions.length, "条表白");
                 } else {
                     console.log("没有表白数据");
+                    renderedTags.forEach(tag => tag.remove());
+                    renderedTags.clear();
                 }
             }, (error) => {
                 console.error('加载表白失败:', error);
