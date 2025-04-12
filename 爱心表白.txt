@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sign的表白墙</title>
+    <style>
+        /* 爱心树动画样式 */
+        body {
+            margin: 0;
+            padding: 0;
+            overflow: auto;
+            font-family: "微软雅黑", "宋体", sans-serif;
+        }
+        #main {
+            width: 100%;
+        }
+        #wrap {
+            position: relative;
+            margin: 0 auto;
+            width: 1100px;
+            height: 680px;
+            margin-top: 10px;
+        }
+        #canvas {
+            margin: 0 auto;
+            width: 1100px;
+            height: 680px;
+        }
+        #error {
+            margin: 0 auto;
+            text-align: center;
+            margin-top: 60px;
+            display: none;
+        }
+        .hand {
+            cursor: pointer;
+        }
+
+        /* 表白墙样式 */
+        #confession-wall {
+            display: none; /* 默认隐藏 */
+            background-color: #ff9800;
+            height: 100vh;
+            overflow: hidden;
+        }
+        .header {
+            background-color: #f5f5dc;
+            height: 100px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            z-index: 1001;
+        }
+        .title {
+            color: #ff5722;
+            font-size: 60px;
+            font-weight: bold;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3), -1px -1px 2px rgba(255, 255, 255, 0.5);
+            margin: 0 20px;
+        }
+        .heart {
+            font-size: 60px;
+            color: #ff9800;
+        }
+        .input-area {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(255, 255, 255, 0.9);
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+            z-index: 1000;
+            width: 600px;
+            text-align: center;
+        }
+        textarea, input {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            box-sizing: border-box;
+            font-size: 16px;
+        }
+        textarea {
+            height: 150px;
+            resize: none;
+        }
+        input[type="text"] {
+            height: 40px;
+        }
+        button {
+            background-color: #ff5722;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background-color 0.3s;
+            margin-right: 10px;
+        }
+        button:hover {
+            background-color: #e64a19;
+        }
+        .share-button {
+            background-color: #1da1f2;
+        }
+        .share-button:hover {
+            background-color: #0d95e8;
+        }
+        .credit {
+            position: absolute;
+            bottom: -40px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: #000;
+            font-size: 18px;
+            z-index: 1000;
+        }
+        .quote {
+            position: absolute;
+            bottom: -60px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: #fff;
+            font-size: 16px;
+            z-index: 1000;
+        }
+        .confession-tag {
+            position: absolute;
+            padding: 15px;
+            border-radius: 10px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+            max-width: 200px;
+            word-wrap: break-word;
+            cursor: move;
+            user-select: none;
+            z-index: 1;
+        }
+        .signature {
+            font-size: 12px;
+            text-align: right;
+            margin-top: 5px;
+            font-style: italic;
+            color: #808080;
+        }
+    </style>
+</head>
+<body>
+    <!-- 爱心树动画部分 -->
+    <div id="main">
+        <div id="error">
+            抱歉！目前您的浏览器无法显示，请更新至最新版本或使用其他主流浏览器，谢谢合作。
+        </div>
+        <div id="wrap">
+            <canvas id="canvas" width="1100" height="680"></canvas>
+        </div>
+    </div>
+
+    <!-- 表白墙部分 -->
+    <div id="confession-wall">
+        <div class="header">
+            <span class="heart">♥</span>
+            <div class="title">Sign的表白墙</div>
+            <span class="heart">♥</span>
+        </div>
+        <div class="input-area">
+            <textarea id="confessionInput" placeholder="写下你的表白（最多200字）" maxlength="200" oninput="checkLimit(this, 200)"></textarea>
+            <input type="text" id="signatureInput" placeholder="你的签名（最多20字）" maxlength="20" oninput="checkLimit(this, 20)">
+            <button onclick="addConfession()">表白</button>
+            <button class="share-button" onclick="shareLastConfession()">分享</button>
+            <div class="credit">Made by @carmel_qveen27</div>
+            <div class="quote">每一份表白都是心底最真挚的感情</div>
+        </div>
+    </div>
+
+    <!-- 脚本依赖 -->
+    <!-- 爱心树动画脚本 -->
+    <script src="https://cdn-static-devbit.csdn.net/devbit-static/code/love-tree/js/jquery.min.js"></script>
+    <script src="https://cdn-static-devbit.csdn.net/devbit-static/code/love-tree/js/jscex.min.js"></script>
+    <script src="https://cdn-static-devbit.csdn.net/devbit-static/code/love-tree/js/jscex-parser.js"></script>
+    <script src="https://cdn-static-devbit.csdn.net/devbit-static/code/love-tree/js/jscex-jit.js"></script>
+    <script src="https://cdn-static-devbit.csdn.net/devbit-static/code/love-tree/js/jscex-builderbase.min.js"></script>
+    <script src="https://cdn-static-devbit.csdn.net/devbit-static/code/love-tree/js/jscex-async.min.js"></script>
+    <script src="https://cdn-static-devbit.csdn.net/devbit-static/code/love-tree/js/jscex-async-powerpack.min.js"></script>
+    <script src="https://cdn-static-devbit.csdn.net/devbit-static/code/love-tree/js/functions.js" charset="utf-8"></script>
+    <script src="https://cdn-static-devbit.csdn.net/devbit-static/code/love-tree/js/love.js" charset="utf-8"></script>
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+
+    <script>
+        // 爱心树动画逻辑
+        (function () {
+            var canvas = $("#canvas");
+            if (!canvas[0].getContext) {
+                $("#error").show();
+                return;
+            }
+
+            var width = canvas.width();
+            var height = canvas.height();
+            canvas.attr("width", width);
+            canvas.attr("height", height);
+            var opts = {
+                seed: { x: width / 2 - 20, color: "rgb(190, 26, 37)", scale: 2 },
+                branch: [
+                    [535, 680, 570, 250, 500, 200, 30, 100, [
+                        [540, 500, 455, 417, 340, 400, 13, 100, [[450, 435, 434, 430, 394, 395, 2, 40]]],
+                        [550, 445, 600, 356, 680, 345, 12, 100, [[578, 400, 648, 409, 661, 426, 3, 80]]],
+                        [539, 281, 537, 248, 534, 217, 3, 40],
+                        [546, 397, 413, 247, 328, 244, 9, 80, [[427, 286, 383, 253, 371, 205, 2, 40], [498, 345, 435, 315, 395, 330, 4, 60]]],
+                        [546, 357, 608, 252, 678, 221, 6, 100, [[590, 293, 646, 277, 648, 271, 2, 80]]]
+                    ]]
+                ],
+                bloom: { num: 700, width: 1080, height: 650 },
+                footer: { width: 1200, height: 5, speed: 10 }
+            };
+
+            var tree = new Tree(canvas[0], width, height, opts);
+            var seed = tree.seed;
+            var foot = tree.footer;
+            var hold = 1;
+
+            canvas.click(function (e) {
+                var offset = canvas.offset(), x, y;
+                x = e.pageX - offset.left;
+                y = e.pageY - offset.top;
+                if (seed.hover(x, y)) {
+                    hold = 0;
+                    canvas.unbind("click");
+                    canvas.unbind("mousemove");
+                    canvas.removeClass("hand");
+                }
+            }).mousemove(function (e) {
+                var offset = canvas.offset(), x, y;
+                x = e.pageX - offset.left;
+                y = e.pageY - offset.top;
+                canvas.toggleClass("hand", seed.hover(x, y));
+            });
+
+            var seedAnimate = eval(Jscex.compile("async", function () {
+                seed.draw();
+                while (hold) { $await(Jscex.Async.sleep(10)); }
+                while (seed.canScale()) { seed.scale(0.95); $await(Jscex.Async.sleep(10)); }
+                while (seed.canMove()) { seed.move(0, 2); foot.draw(); $await(Jscex.Async.sleep(10)); }
+            }));
+
+            var growAnimate = eval(Jscex.compile("async", function () {
+                do { tree.grow(); $await(Jscex.Async.sleep(10)); } while (tree.canGrow());
+            }));
+
+            var flowAnimate = eval(Jscex.compile("async", function () {
+                do { tree.flower(2); $await(Jscex.Async.sleep(10)); } while (tree.canFlower());
+            }));
+
+            var moveAnimate = eval(Jscex.compile("async", function () {
+                tree.snapshot("p1", 240, 0, 610, 680);
+                canvas.parent().css("background", "url(" + tree.toDataURL("image/png") + ")");
+                canvas.css("background", "#fafafa");
+                $await(Jscex.Async.sleep(300));
+                canvas.css("background", "none");
+            }));
+
+            var jumpAnimate = eval(Jscex.compile("async", function () {
+                var ctx = tree.ctx;
+                while (true) { tree.ctx.clearRect(0, 0, width, height); tree.jump(); foot.draw(); $await(Jscex.Async.sleep(25)); }
+            }));
+
+            var runAsync = eval(Jscex.compile("async", function () {
+                $await(seedAnimate());
+                $await(growAnimate());
+                $await(flowAnimate());
+                $await(moveAnimate());
+                $await(jumpAnimate());
+                // 动画完成后提示并切换
+                document.body.innerHTML += '<div id="prompt" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: #fff; font-size: 24px; text-align: center;">动画结束，请点击任意位置进入表白墙</div>';
+                document.body.addEventListener('click', function switchToWall() {
+                    document.getElementById('main').style.display = 'none';
+                    document.getElementById('prompt').style.display = 'none';
+                    document.getElementById('confession-wall').style.display = 'block';
+                    document.body.removeEventListener('click', switchToWall); // 移除监听，避免重复触发
+                    initConfessionWall(); // 初始化表白墙逻辑
+                });
+            }));
+
+            runAsync().start();
+        })();
+
+        // 表白墙逻辑
+        function initConfessionWall() {
+            const firebaseConfig = {
+                apiKey: "AIzaSyBIsZnPCyLo6iO7FJIdXfcVTaX534rGEfk",
+                authDomain: "signconfessionwall-69ba2.firebaseapp.com",
+                databaseURL: "https://signconfessionwall-69ba2-default-rtdb.asia-southeast1.firebasedatabase.app",
+                projectId: "signconfessionwall-69ba2",
+                storageBucket: "signconfessionwall-69ba2.appspot.com",
+                messagingSenderId: "180816081302",
+                appId: "1:180816081302:web:8f3c922a3e97f5408e2db7"
+            };
+
+            firebase.initializeApp(firebaseConfig);
+            const database = firebase.database();
+            const confessionsRef = database.ref('confessions');
+
+            const colors = [
+                'rgba(255, 224, 224, 0.9)', 'rgba(255, 255, 224, 0.9)', 'rgba(224, 255, 224, 0.9)',
+                'rgba(224, 224, 255, 0.9)', 'rgba(255, 224, 224, 0.9)'
+            ];
+
+            const sampleMessages = [
+                { message: "我喜欢你，像风走了八千里，不问归期", signature: "匿名" },
+                { message: "你是我生命中最美的风景", signature: "小星星" },
+                { message: "遇见你是我最大的幸运", signature: "幸运儿" },
+                { message: "愿得一人心，白首不分离", signature: "永恒" },
+                { message: "你的笑容是我每天的动力", signature: "追光者" },
+                { message: "我想和你一起看遍世间美好", signature: "旅行家" },
+                { message: "你是我藏在心底的遗憾", signature: "秘密" },
+                { message: "爱你不是两三天，每天想你很多遍", signature: "思念" }
+            ];
+
+            let lastConfession = null;
+
+            function checkLimit(element, maxLength) {
+                const value = element.value;
+                if (value.length >= maxLength) {
+                    alert(`输入已达到上限（${maxLength}字），请精简内容！`);
+                }
+            }
+
+            function getRandomPosition() {
+                const maxX = window.innerWidth - 200;
+                const maxY = window.innerHeight - 100;
+                const inputArea = document.querySelector('.input-area');
+                const inputHeight = inputArea.offsetHeight + 60;
+                const inputWidth = inputArea.offsetWidth;
+                const inputTop = inputArea.offsetTop;
+                const inputLeft = inputArea.offsetLeft;
+                const inputBottom = inputTop + inputHeight;
+                const inputRight = inputLeft + inputWidth;
+
+                const tagWidth = 200;
+                const tagHeight = 100;
+
+                let x, y, attempts = 0;
+                const maxAttempts = 100;
+
+                do {
+                    x = Math.random() * maxX;
+                    y = Math.random() * maxY;
+                    if (x < 0) x = 0;
+                    if (y < 100) y = 100;
+                    if (y > maxY) y = maxY;
+
+                    const tagLeft = x;
+                    const tagRight = x + tagWidth;
+                    const tagTop = y;
+                    const tagBottom = y + tagHeight;
+
+                    attempts++;
+                    if (attempts > maxAttempts) {
+                        y = inputTop - tagHeight - 10;
+                        break;
+                    }
+                } while ((tagRight > inputLeft && tagLeft < inputRight) && (tagBottom > inputTop && tagTop < inputBottom));
+
+                return { x, y };
+            }
+
+            confessionsRef.once('value', (snapshot) => {
+                if (!snapshot.val()) {
+                    sampleMessages.forEach(sample => {
+                        const { x, y } = getRandomPosition();
+                        const randomColor = colors[Math.floor(Math.random() * colors.length)];
+                        confessionsRef.push({ text: sample.message, signature: sample.signature, x, y, color: randomColor });
+                    });
+                }
+            }).catch(error => {
+                console.error('Failed to load initial data:', error);
+            });
+
+            confessionsRef.on('value', (snapshot) => {
+                document.querySelectorAll('.confession-tag').forEach(tag => tag.remove());
+                const confessions = snapshot.val();
+                if (confessions) {
+                    Object.entries(confessions).forEach(([id, conf]) => {
+                        createTag(conf.text, conf.signature, conf.x, conf.y, conf.color || colors[Math.floor(Math.random() * colors.length)]);
+                    });
+                }
+            }, (error) => {
+                console.error('加载表白失败:', error);
+            });
+
+            window.addConfession = function () {
+                const confessionText = document.getElementById('confessionInput').value.trim();
+                const signatureText = document.getElementById('signatureInput').value.trim() || '匿名';
+
+                if (confessionText === '') {
+                    alert('请写下你的表白内容！');
+                    return;
+                }
+
+                const { x, y } = getRandomPosition();
+                const randomColor = colors[Math.floor(Math.random() * colors.length)];
+                const newConfession = { text: confessionText, signature: signatureText, x, y, color: randomColor };
+
+                confessionsRef.push(newConfession).then(() => {
+                    lastConfession = newConfession;
+                    document.getElementById('confessionInput').value = '';
+                    document.getElementById('signatureInput').value = '';
+                }).catch(error => {
+                    console.error('提交表白失败:', error);
+                    alert('提交表白失败，请检查网络或稍后再试');
+                });
+            };
+
+            function createTag(text, signature, x, y, color) {
+                const tag = document.createElement('div');
+                tag.className = 'confession-tag';
+                tag.style.backgroundColor = color;
+                tag.innerHTML = `${text}<div class="signature">— ${signature}</div>`;
+                tag.style.left = `${x}px`;
+                tag.style.top = `${y}px`;
+
+                const angle = Math.random() * 20 - 10;
+                tag.style.transform = `rotate(${angle}deg)`;
+
+                document.getElementById('confession-wall').appendChild(tag);
+
+                let isDragging = false;
+                let currentX, currentY;
+
+                tag.addEventListener('mousedown', function(e) {
+                    isDragging = true;
+                    currentX = e.clientX - parseInt(tag.style.left);
+                    currentY = e.clientY - parseInt(tag.style.top);
+                    e.preventDefault();
+                });
+
+                tag.addEventListener('mousemove', function(e) {
+                    if (isDragging) {
+                        let newX = e.clientX - currentX;
+                        let newY = e.clientY - currentY;
+                        const maxX = window.innerWidth - tag.offsetWidth;
+                        const maxY = window.innerHeight - tag.offsetHeight;
+                        const inputArea = document.querySelector('.input-area');
+                        const inputHeight = inputArea.offsetHeight + 60;
+                        const inputWidth = inputArea.offsetWidth;
+                        const inputTop = inputArea.offsetTop;
+                        const inputLeft = inputArea.offsetLeft;
+
+                        if (newX < 0) newX = 0;
+                        if (newY < 100) newY = 100;
+                        if (newX > maxX) newX = maxX;
+                        if (newY > maxY) newY = maxY;
+                        if (newY < inputTop + inputHeight && newY + tag.offsetHeight > inputTop && newX < inputLeft + inputWidth && newX + tag.offsetWidth > inputLeft) {
+                            newY = newY < inputTop + inputHeight / 2 ? inputTop - tag.offsetHeight : inputTop + inputHeight;
+                        }
+
+                        tag.style.left = `${newX}px`;
+                        tag.style.top = `${newY}px`;
+                    }
+                });
+
+                tag.addEventListener('mouseup', function() {
+                    isDragging = false;
+                });
+
+                tag.addEventListener('mouseleave', function() {
+                    isDragging = false;
+                });
+            }
+
+            window.shareLastConfession = function () {
+                if (!lastConfession) {
+                    alert('请先添加一个表白！');
+                    return;
+                }
+                const tweetText = `${lastConfession.text} — ${lastConfession.signature} (来自 Sign的表白墙)`;
+                const tweetUrl = 'https://signconfessionwall-69ba2.web.app/';
+                const url = `https://twitter.com/intent/tweet?text=${encodeURIComponent(tweetText)}&url=${encodeURIComponent(tweetUrl)}`;
+                window.open(url, '_blank');
+            };
+        }
+    </script>
+</body>
+</html>

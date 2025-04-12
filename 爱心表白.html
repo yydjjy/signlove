@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sign的表白墙</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #ff9800;
+            height: 100vh;
+            overflow: hidden;
+            font-family: 'Arial', sans-serif;
+        }
+
+        .header {
+            background-color: #f5f5dc;
+            height: 100px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            z-index: 1001;
+        }
+
+        .title {
+            color: #ff0000;
+            font-size: 60px;
+            font-weight: bold;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
+            margin: 0 20px;
+        }
+
+        .heart {
+            font-size: 60px;
+            color: #ff9800;
+        }
+
+        .input-area {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(255, 255, 255, 0.9);
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+            z-index: 1000;
+            width: 600px;
+            text-align: center;
+        }
+
+        textarea, input {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            box-sizing: border-box;
+            font-size: 16px;
+        }
+
+        textarea {
+            height: 150px;
+            resize: none;
+        }
+
+        input[type="text"] {
+            height: 40px;
+        }
+
+        button {
+            background-color: #ff5722;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background-color 0.3s;
+            margin-right: 10px;
+        }
+
+        button:hover {
+            background-color: #e64a19;
+        }
+
+        .share-button {
+            background-color: #1da1f2;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background-color 0.3s;
+        }
+
+        .share-button:hover {
+            background-color: #0d95e8;
+        }
+
+        .credit {
+            position: absolute;
+            bottom: -40px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: #000;
+            font-size: 18px;
+            z-index: 1000;
+        }
+
+        .quote {
+            position: absolute;
+            bottom: -60px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: #fff;
+            font-size: 16px;
+            z-index: 1000;
+        }
+
+        .confession-tag {
+            position: absolute;
+            padding: 15px;
+            border-radius: 10px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+            max-width: 200px;
+            word-wrap: break-word;
+            cursor: move;
+            user-select: none;
+            z-index: 1;
+        }
+
+        .signature {
+            font-size: 12px;
+            text-align: right;
+            margin-top: 5px;
+            font-style: italic;
+            color: #808080; /* 灰色 */
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <span class="heart">♥</span>
+        <div class="title">Sign的表白墙</div>
+        <span class="heart">♥</span>
+    </div>
+    <div class="input-area">
+        <textarea id="confessionInput" placeholder="写下你的表白（最多200字）" maxlength="200" oninput="checkLimit(this, 200)"></textarea>
+        <input type="text" id="signatureInput" placeholder="你的签名（最多20字）" maxlength="20" oninput="checkLimit(this, 20)">
+        <button onclick="addConfession()">表白</button>
+        <button class="share-button" onclick="shareLastConfession()">分享</button>
+        <div class="credit">Made by @carmel_qveen27</div>
+        <div class="quote">每一份表白都是心底最真挚的感情</div>
+    </div>
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+
+    <script>
+        // Firebase 配置
+        const firebaseConfig = {
+            apiKey: "AIzaSyBIsZnPCyLo6iO7FJIdXfcVTaX534rGEfk",
+            authDomain: "signconfessionwall-69ba2.firebaseapp.com",
+            databaseURL: "https://signconfessionwall-69ba2-default-rtdb.asia-southeast1.firebasedatabase.app",
+            projectId: "signconfessionwall-69ba2",
+            storageBucket: "signconfessionwall-69ba2.firebasestorage.app",
+            messagingSenderId: "180816081302",
+            appId: "1:180816081302:web:8f3c922a3e97f5408e2db7"
+        };
+
+        // 初始化 Firebase
+        firebase.initializeApp(firebaseConfig);
+        const database = firebase.database();
+        const confessionsRef = database.ref('confessions');
+
+        // 随机颜色数组
+        const colors = [
+            'rgba(255, 224, 224, 0.9)', // 浅粉色
+            'rgba(255, 255, 224, 0.9)', // 浅黄色（接近米白色）
+            'rgba(224, 255, 224, 0.9)', // 浅绿色
+            'rgba(224, 224, 255, 0.9)', // 浅紫色
+            'rgba(255, 224, 224, 0.9)'  // 浅粉色（重复）
+        ];
+
+        // 示例表白数据
+        const sampleMessages = [
+            { message: "我喜欢你，像风走了八千里，不问归期", signature: "匿名" },
+            { message: "你是我生命中最美的风景", signature: "小星星" },
+            { message: "遇见你是我最大的幸运", signature: "幸运儿" },
+            { message: "愿得一人心，白首不分离", signature: "永恒" },
+            { message: "你的笑容是我每天的动力", signature: "追光者" },
+            { message: "我想和你一起看遍世间美好", signature: "旅行家" },
+            { message: "你是我藏在心底的遗憾", signature: "秘密" },
+            { message: "爱你不是两三天，每天想你很多遍", signature: "思念" }
+        ];
+
+        // 存储最新表白用于分享
+        let lastConfession = null;
+
+        // 检查字数并提醒
+        function checkLimit(element, maxLength) {
+            const value = element.value;
+            if (value.length >= maxLength) {
+                alert(`输入已达到上限（${maxLength}字），请精简内容！`);
+            }
+        }
+
+        // 获取随机位置，确保不与输入框及下方文字重叠
+        function getRandomPosition() {
+            const maxX = window.innerWidth - 200; // 标签最大宽度
+            const maxY = window.innerHeight - 100; // 留出底部空间
+            const inputArea = document.querySelector('.input-area');
+            const inputHeight = inputArea.offsetHeight + 60; // 包括底部文字区域
+            const inputWidth = inputArea.offsetWidth;
+            const inputTop = inputArea.offsetTop;
+            const inputLeft = inputArea.offsetLeft;
+
+            let x, y;
+            do {
+                x = Math.random() * maxX;
+                y = Math.random() * maxY;
+                if (x < 0) x = 0;
+                if (y < 100) y = 100; // 避开顶部标题区域
+                if (y > maxY) y = maxY;
+            } while (
+                (x < inputLeft + inputWidth && x + 200 > inputLeft) && 
+                (y < inputTop + inputHeight && y + 50 > inputTop)
+            ); // 检查标签边界是否与输入框重叠
+
+            return { x, y };
+        }
+
+        // 检查并添加初始示例表白
+        confessionsRef.once('value', (snapshot) => {
+            if (!snapshot.val()) {
+                sampleMessages.forEach(sample => {
+                    const { x, y } = getRandomPosition();
+                    const randomColor = colors[Math.floor(Math.random() * colors.length)];
+                    confessionsRef.push({
+                        text: sample.message,
+                        signature: sample.signature,
+                        x: x,
+                        y: y,
+                        color: randomColor
+                    });
+                });
+            }
+        });
+
+        // 加载现有表白
+        confessionsRef.on('value', (snapshot) => {
+            document.querySelectorAll('.confession-tag').forEach(tag => tag.remove());
+            const confessions = snapshot.val();
+            if (confessions) {
+                Object.entries(confessions).forEach(([id, conf]) => {
+                    createTag(conf.text, conf.signature, conf.x, conf.y, conf.color || colors[Math.floor(Math.random() * colors.length)]);
+                });
+            }
+        }, (error) => {
+            console.error('加载表白失败:', error);
+        });
+
+        // 添加表白
+        function addConfession() {
+            const confessionText = document.getElementById('confessionInput').value.trim();
+            const signatureText = document.getElementById('signatureInput').value.trim() || '匿名';
+
+            if (confessionText === '') {
+                alert('请写下你的表白内容！');
+                return;
+            }
+
+            const { x, y } = getRandomPosition();
+            const randomColor = colors[Math.floor(Math.random() * colors.length)];
+            const newConfession = { text: confessionText, signature: signatureText, x: x, y: y, color: randomColor };
+
+            confessionsRef.push(newConfession, (error) => {
+                if (error) {
+                    console.error('提交表白失败:', error);
+                } else {
+                    lastConfession = { text: confessionText, signature: signatureText, x: x, y: y, color: randomColor };
+                    document.getElementById('confessionInput').value = '';
+                    document.getElementById('signatureInput').value = '';
+                }
+            });
+        }
+
+        // 创建表白标签并绑定拖动功能
+        function createTag(text, signature, x, y, color) {
+            const tag = document.createElement('div');
+            tag.className = 'confession-tag';
+            tag.style.backgroundColor = color;
+            tag.innerHTML = `${text}<div class="signature">— ${signature}</div>`;
+            tag.style.left = `${x}px`;
+            tag.style.top = `${y}px`;
+
+            // 添加随机倾斜角度 (±10°)
+            const angle = Math.random() * 20 - 10; // 生成 -10° 到 +10° 的随机角度
+            tag.style.transform = `rotate(${angle}deg)`;
+
+            document.body.appendChild(tag);
+
+            // 独立拖动逻辑
+            let isDragging = false;
+            let currentX, currentY;
+
+            tag.addEventListener('mousedown', function(e) {
+                isDragging = true;
+                currentX = e.clientX - parseInt(tag.style.left);
+                currentY = e.clientY - parseInt(tag.style.top);
+                e.preventDefault(); // 防止文本选中
+            });
+
+            tag.addEventListener('mousemove', function(e) {
+                if (isDragging) {
+                    let newX = e.clientX - currentX;
+                    let newY = e.clientY - currentY;
+                    const maxX = window.innerWidth - tag.offsetWidth;
+                    const maxY = window.innerHeight - tag.offsetHeight;
+                    const inputArea = document.querySelector('.input-area');
+                    const inputHeight = inputArea.offsetHeight + 60;
+                    const inputWidth = inputArea.offsetWidth;
+                    const inputTop = inputArea.offsetTop;
+                    const inputLeft = inputArea.offsetLeft;
+
+                    if (newX < 0) newX = 0;
+                    if (newY < 100) newY = 100; // 避开顶部标题
+                    if (newX > maxX) newX = maxX;
+                    if (newY > maxY) newY = maxY;
+                    if (newY < inputTop + inputHeight && newY + tag.offsetHeight > inputTop && newX < inputLeft + inputWidth && newX + tag.offsetWidth > inputLeft) {
+                        newY = newY < inputTop + inputHeight / 2 ? inputTop - tag.offsetHeight : inputTop + inputHeight;
+                    }
+
+                    tag.style.left = `${newX}px`;
+                    tag.style.top = `${newY}px`;
+                }
+            });
+
+            tag.addEventListener('mouseup', function() {
+                isDragging = false;
+            });
+
+            // 确保鼠标离开标签时停止拖动
+            tag.addEventListener('mouseleave', function() {
+                isDragging = false;
+            });
+        }
+
+        // 分享最新表白到 Twitter
+        function shareLastConfession() {
+            if (!lastConfession) {
+                alert('请先添加一个表白！');
+                return;
+            }
+
+            const tweetText = `${lastConfession.text} — ${lastConfession.signature} (来自 Sign的表白墙)`;
+            const tweetUrl = 'https://signconfessionwall-69ba2.web.app/';
+            const url = `https://twitter.com/intent/tweet?text=${encodeURIComponent(tweetText)}&url=${encodeURIComponent(tweetUrl)}`;
+            window.open(url, '_blank');
+        }
+    </script>
+</body>
+</html>
