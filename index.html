@@ -156,8 +156,8 @@
     <div class="input-area">
         <textarea id="confessionInput" placeholder="写下你的表白（最多200字）" maxlength="200"></textarea>
         <input type="text" id="signatureInput" placeholder="你的签名（最多20字）" maxlength="20">
-        <button onclick="addConfession()">表白</button>
-        <button class="share-button" onclick="shareLastConfession()">分享</button>
+        <button id="confessButton">表白</button>
+        <button id="shareButton" class="share-button">分享</button>
     </div>
     <div class="credit">Made by @carmel_qveen27</div>
     <div class="quote">每一份表白都是心底最真挚的感情</div>
@@ -180,7 +180,14 @@
         };
 
         // 初始化 Firebase
-        const app = initializeApp(firebaseConfig);
+        let app;
+        try {
+            app = initializeApp(firebaseConfig);
+            console.log("Firebase 初始化成功");
+        } catch (error) {
+            console.error("Firebase 初始化失败:", error);
+        }
+
         const analytics = getAnalytics(app);
         const db = getDatabase(app);
         const confessionsRef = ref(db, 'confessions');
@@ -216,23 +223,6 @@
             }
         }
 
-        // 确保 DOM 加载完成后再绑定事件
-        document.addEventListener('DOMContentLoaded', () => {
-            const confessionInput = document.getElementById('confessionInput');
-            const signatureInput = document.getElementById('signatureInput');
-
-            if (confessionInput && signatureInput) {
-                confessionInput.addEventListener('input', function() {
-                    checkLimit(this, 200);
-                });
-                signatureInput.addEventListener('input', function() {
-                    checkLimit(this, 20);
-                });
-            } else {
-                console.error('无法找到 confessionInput 或 signatureInput 元素');
-            }
-        });
-
         // 获取随机位置
         function getRandomPosition() {
             const maxX = window.innerWidth - 200;
@@ -258,54 +248,33 @@
             return { x, y };
         }
 
-        // 初始化示例表白
-        onValue(confessionsRef, (snapshot) => {
-            if (!snapshot.exists()) {
-                sampleMessages.forEach(sample => {
-                    const { x, y } = getRandomPosition();
-                    const randomColor = colors[Math.floor(Math.random() * colors.length)];
-                    push(confessionsRef, {
-                        text: sample.message,
-                        signature: sample.signature,
-                        x: x,
-                        y: y,
-                        color: randomColor
-                    });
-                });
-            }
-        }, { onlyOnce: true });
-
-        // 加载表白
-        onValue(confessionsRef, (snapshot) => {
-            document.querySelectorAll('.confession-tag').forEach(tag => tag.remove());
-            const confessions = snapshot.val();
-            if (confessions) {
-                Object.entries(confessions).forEach(([id, conf]) => {
-                    createTag(conf.text, conf.signature, conf.x, conf.y, conf.color || colors[Math.floor(Math.random() * colors.length)]);
-                });
-            }
-        }, (error) => {
-            console.error('加载表白失败:', error);
-        });
-
         // 添加表白
         function addConfession() {
+            console.log("addConfession 函数被调用");
+
             const confessionText = document.getElementById('confessionInput').value.trim();
             const signatureText = document.getElementById('signatureInput').value.trim() || '匿名';
 
             if (confessionText === '') {
                 alert('请写下你的表白内容！');
+                console.log("表白内容为空，停止执行");
                 return;
             }
+
+            console.log("表白内容:", confessionText, "签名:", signatureText);
 
             const { x, y } = getRandomPosition();
             const randomColor = colors[Math.floor(Math.random() * colors.length)];
             const newConfession = { text: confessionText, signature: signatureText, x: x, y: y, color: randomColor };
 
+            console.log("新表白数据:", newConfession);
+
             push(confessionsRef, newConfession, (error) => {
                 if (error) {
                     console.error('提交表白失败:', error);
+                    alert('提交表白失败，请检查网络或 Firebase 配置！');
                 } else {
+                    console.log("表白提交成功");
                     lastConfession = newConfession;
                     document.getElementById('confessionInput').value = '';
                     document.getElementById('signatureInput').value = '';
@@ -418,8 +387,10 @@
 
         // 分享到 X
         function shareLastConfession() {
+            console.log("shareLastConfession 函数被调用");
             if (!lastConfession) {
                 alert('请先添加一个表白！');
+                console.log("没有表白数据可分享");
                 return;
             }
 
@@ -427,7 +398,91 @@
             const tweetUrl = 'https://signlove.netlify.app/';
             const url = `https://x.com/intent/tweet?text=${encodeURIComponent(tweetText)}&url=${encodeURIComponent(tweetUrl)}`;
             window.open(url, '_blank');
+            console.log("分享链接:", url);
         }
+
+        // 确保 DOM 加载完成后再绑定事件和初始化
+        document.addEventListener('DOMContentLoaded', () => {
+            console.log("DOM 加载完成");
+
+            // 绑定输入框事件
+            const confessionInput = document.getElementById('confessionInput');
+            const signatureInput = document.getElementById('signatureInput');
+            const confessButton = document.getElementById('confessButton');
+            const shareButton = document.getElementById('shareButton');
+
+            if (!confessionInput || !signatureInput || !confessButton || !shareButton) {
+                console.error('无法找到必要的 DOM 元素:', {
+                    confessionInput: !!confessionInput,
+                    signatureInput: !!signatureInput,
+                    confessButton: !!confessButton,
+                    shareButton: !!shareButton
+                });
+                return;
+            }
+
+            confessionInput.addEventListener('input', function() {
+                checkLimit(this, 200);
+            });
+            signatureInput.addEventListener('input', function() {
+                checkLimit(this, 20);
+            });
+
+            // 绑定表白按钮
+            confessButton.addEventListener('click', () => {
+                console.log("表白按钮被点击");
+                addConfession();
+            });
+
+            // 绑定分享按钮
+            shareButton.addEventListener('click', () => {
+                console.log("分享按钮被点击");
+                shareLastConfession();
+            });
+
+            // 初始化示例表白
+            onValue(confessionsRef, (snapshot) => {
+                if (!snapshot.exists()) {
+                    console.log("数据库为空，初始化示例表白");
+                    sampleMessages.forEach(sample => {
+                        const { x, y } = getRandomPosition();
+                        const randomColor = colors[Math.floor(Math.random() * colors.length)];
+                        push(confessionsRef, {
+                            text: sample.message,
+                            signature: sample.signature,
+                            x: x,
+                            y: y,
+                            color: randomColor
+                        }, (error) => {
+                            if (error) {
+                                console.error('初始化示例表白失败:', error);
+                            } else {
+                                console.log("初始化示例表白成功:", sample.message);
+                            }
+                        });
+                    });
+                } else {
+                    console.log("数据库已有数据，跳过初始化");
+                }
+            }, { onlyOnce: true });
+
+            // 加载表白
+            onValue(confessionsRef, (snapshot) => {
+                console.log("加载表白数据");
+                document.querySelectorAll('.confession-tag').forEach(tag => tag.remove());
+                const confessions = snapshot.val();
+                if (confessions) {
+                    Object.entries(confessions).forEach(([id, conf]) => {
+                        createTag(conf.text, conf.signature, conf.x, conf.y, conf.color || colors[Math.floor(Math.random() * colors.length)]);
+                    });
+                    console.log("表白数据加载完成");
+                } else {
+                    console.log("没有表白数据");
+                }
+            }, (error) => {
+                console.error('加载表白失败:', error);
+            });
+        });
     </script>
 </body>
 </html>
