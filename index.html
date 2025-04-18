@@ -41,6 +41,17 @@
             color: #ff9800;
         }
 
+        .click-hint {
+            font-size: 24px;
+            margin-left: 10px;
+            animation: pulse 1.5s infinite ease-in-out;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.2); }
+        }
+
         .input-area {
             position: fixed;
             top: 50%;
@@ -55,7 +66,6 @@
             text-align: center;
             display: none;
             box-sizing: border-box;
-            position: relative;
         }
 
         textarea, input {
@@ -157,6 +167,12 @@
             user-select: none;
             z-index: 1;
             box-sizing: border-box;
+            animation: float 2s ease-in-out infinite;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-5px); }
         }
 
         .signature {
@@ -204,6 +220,68 @@
             pointer-events: none;
         }
 
+        .like-button {
+            background: none;
+            border: none;
+            color: #ff0000;
+            cursor: pointer;
+            font-size: 14px;
+            margin-top: 5px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .like-button:hover {
+            color: #e60000;
+        }
+
+        .reply-button {
+            background: none;
+            border: none;
+            color: #1da1f2;
+            cursor: pointer;
+            font-size: 14px;
+            margin-top: 5px;
+        }
+
+        .reply-input {
+            margin-top: 5px;
+        }
+
+        .reply-input textarea {
+            width: 100%;
+            height: 60px;
+            padding: 5px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            resize: none;
+            font-size: 12px;
+        }
+
+        .submit-reply {
+            background-color: #1da1f2;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+
+        .replies {
+            margin-top: 5px;
+            font-size: 12px;
+            color: #333;
+        }
+
+        .reply {
+            margin: 5px 0;
+            padding: 5px;
+            background: rgba(255, 255, 255, 0.8);
+            border-radius: 5px;
+        }
+
         @media (max-width: 768px) {
             .input-area {
                 width: 90%;
@@ -221,6 +299,10 @@
             .confess-love-button {
                 font-size: 18px;
                 padding: 8px 16px;
+            }
+
+            .click-hint {
+                font-size: 18px;
             }
 
             .confession-tag {
@@ -246,6 +328,7 @@
         <span class="heart">♥</span>
         <div class="title">Sign表白墙</div>
         <button id="confessLoveButton" class="confess-love-button">表白爱</button>
+        <span class="click-hint">👆</span>
         <span class="heart">♥</span>
     </div>
     <div class="input-area" id="inputArea">
@@ -260,9 +343,9 @@
     <div class="quote">每一份表白都是心底最真挚的感情</div>
 
     <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-app.js";
-        import { getAnalytics } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-analytics.js";
-        import { getDatabase, ref, push, onValue, update } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-database.js";
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+        import { getAnalytics } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-analytics.js";
+        import { getDatabase, ref, push, onValue, update } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyBSenViJcE17Vd58s7ujJENXLCQSaxwaNY",
@@ -280,6 +363,7 @@
             console.log("Firebase 初始化成功");
         } catch (error) {
             console.error("Firebase 初始化失败:", error);
+            alert("无法连接到数据库，请稍后重试！");
         }
 
         const analytics = getAnalytics(app);
@@ -308,6 +392,7 @@
         let lastConfession = null;
         let allConfessions = [];
         const renderedTags = new Map();
+        let maxZIndex = 1; // 新增：跟踪最大 z-index
 
         function checkLimit(element, maxLength) {
             const value = element.value;
@@ -316,16 +401,24 @@
             }
         }
 
-        function getRandomPosition() {
+        function isOverlapping(x, y, width, height, existingTags) {
+            return Array.from(existingTags.values()).some(tag => {
+                const rect = tag.getBoundingClientRect();
+                return (
+                    x < rect.right &&
+                    x + width > rect.left &&
+                    y < rect.bottom &&
+                    y + height > rect.top
+                );
+            });
+        }
+
+        function getRandomPosition(existingTags) {
             const tagWidth = 200;
             const tagHeight = 100;
             const buffer = 10;
-            const referenceWidth = 1920;
-            const referenceHeight = 1080;
-
             const maxX = Math.max(0, window.innerWidth - tagWidth - buffer);
             const maxY = Math.max(0, window.innerHeight - tagHeight - buffer);
-
             const inputArea = document.querySelector('.input-area');
             let inputLeft, inputRight, inputTop, inputBottom;
             if (inputArea.style.display !== 'none') {
@@ -345,33 +438,25 @@
             do {
                 x = Math.floor(Math.random() * maxX);
                 y = Math.floor(Math.random() * (maxY - 100)) + 100;
-
                 attempts++;
                 if (attempts > maxAttempts) {
-                    if (inputTop > 200) {
-                        x = Math.min(Math.floor(Math.random() * maxX), maxX);
-                        y = Math.floor(Math.random() * (inputTop - tagHeight - buffer - 100)) + 100;
-                    } else {
-                        x = Math.min(Math.floor(Math.random() * maxX), maxX);
-                        y = Math.floor(inputBottom + buffer + Math.random() * (maxY - inputBottom));
-                    }
+                    x = maxX / 4;
+                    y = maxY / 2;
                     break;
                 }
             } while (
-                inputArea.style.display !== 'none' &&
-                x + tagWidth > inputLeft &&
-                x < inputRight &&
-                y + tagHeight > inputTop &&
-                y < inputBottom
+                (inputArea.style.display !== 'none' &&
+                    x + tagWidth > inputLeft &&
+                    x < inputRight &&
+                    y + tagHeight > inputTop &&
+                    y < inputBottom) ||
+                isOverlapping(x, y, tagWidth, tagHeight, existingTags)
             );
 
             x = Math.max(0, Math.min(x, maxX));
             y = Math.max(100, Math.min(y, maxY));
-
             const xPercent = (x / window.innerWidth) * 100;
             const yPercent = (y / window.innerHeight) * 100;
-
-            console.log("随机位置生成:", { x, y, xPercent, yPercent });
             return { xPercent, yPercent };
         }
 
@@ -386,7 +471,7 @@
                 confetti.style.left = `${Math.random() * 100}vw`;
                 confetti.style.top = `${-10}px`;
 
-                const duration = 5000; // 5秒
+                const duration = 5000;
                 const angle = Math.random() * 360;
                 const distance = 100 + Math.random() * 200;
                 const x = Math.cos(angle * Math.PI / 180) * distance;
@@ -422,9 +507,9 @@
 
             console.log("表白内容:", confessionText, "签名:", signatureText);
 
-            const { xPercent, yPercent } = getRandomPosition();
+            const { xPercent, yPercent } = getRandomPosition(renderedTags);
             const randomColor = colors[Math.floor(Math.random() * colors.length)];
-            const newConfession = { text: confessionText, signature: signatureText, xPercent, yPercent, color: randomColor };
+            const newConfession = { text: confessionText, signature: signatureText, xPercent, yPercent, color: randomColor, likes: 0 };
 
             console.log("新表白数据:", newConfession);
 
@@ -446,14 +531,11 @@
             });
         }
 
-        function createTag(text, signature, xPercent, yPercent, color, id) {
+        function createTag(text, signature, xPercent, yPercent, color, id, likes = 0, replies = {}) {
             const tag = document.createElement('div');
             tag.className = 'confession-tag';
             tag.style.backgroundColor = color;
             tag.dataset.id = id;
-
-            const referenceWidth = 1920;
-            const referenceHeight = 1080;
 
             const x = (xPercent / 100) * window.innerWidth;
             const y = (yPercent / 100) * window.innerHeight;
@@ -468,8 +550,43 @@
             tag.appendChild(textNode);
             tag.appendChild(sigNode);
 
+            const likeButton = document.createElement('button');
+            likeButton.className = 'like-button';
+            likeButton.dataset.id = id;
+            likeButton.innerHTML = `❤️ <span>${likes}</span>`;
+            likeButton.setAttribute('aria-label', '点赞此表白');
+            tag.appendChild(likeButton);
+
+            const replyButton = document.createElement('button');
+            replyButton.className = 'reply-button';
+            replyButton.dataset.id = id;
+            replyButton.textContent = '回复';
+            replyButton.setAttribute('aria-label', '回复此表白');
+            tag.appendChild(replyButton);
+
+            const replyInput = document.createElement('div');
+            replyInput.className = 'reply-input';
+            replyInput.style.display = 'none';
+            replyInput.innerHTML = `
+                <textarea placeholder="写下你的回复（最多100字）" maxlength="100"></textarea>
+                <button class="submit-reply">提交</button>
+            `;
+            tag.appendChild(replyInput);
+
+            const repliesContainer = document.createElement('div');
+            repliesContainer.className = 'replies';
+            tag.appendChild(repliesContainer);
+
+            Object.entries(replies || {}).forEach(([replyId, reply]) => {
+                const replyNode = document.createElement('div');
+                replyNode.className = 'reply';
+                replyNode.textContent = `${reply.text} — ${new Date(reply.timestamp).toLocaleTimeString()}`;
+                repliesContainer.appendChild(replyNode);
+            });
+
             const angle = Math.random() * 20 - 10;
             tag.style.transform = `rotate(${angle}deg)`;
+            tag.style.animationDelay = `${Math.random()}s`;
 
             document.body.appendChild(tag);
 
@@ -491,7 +608,18 @@
                 });
             }, 500);
 
+            // 新增：点击标签置顶
+            tag.addEventListener('click', (e) => {
+                // 避免拖动或按钮点击时触发置顶
+                if (!isDragging && e.target !== likeButton && e.target !== replyButton && !e.target.closest('.submit-reply') && !e.target.closest('textarea')) {
+                    maxZIndex += 1;
+                    tag.style.zIndex = maxZIndex;
+                    console.log(`标签 ${id} 置顶，z-index: ${maxZIndex}`);
+                }
+            });
+
             tag.addEventListener('mousedown', function(e) {
+                if (e.target.closest('.reply-input')) return; // 避免输入框拖动
                 isDragging = true;
                 currentX = e.clientX - parseInt(tag.style.left);
                 currentY = e.clientY - parseInt(tag.style.top);
@@ -499,6 +627,7 @@
             });
 
             tag.addEventListener('touchstart', function(e) {
+                if (e.target.closest('.reply-input')) return;
                 isDragging = true;
                 const touch = e.touches[0];
                 currentX = touch.clientX - parseInt(tag.style.left);
@@ -510,11 +639,11 @@
                 if (isDragging) {
                     let newX = e.clientX - currentX;
                     let newY = e.clientY - currentY;
-                    const maxX = (referenceWidth - tag.offsetWidth) * (window.innerWidth / referenceWidth);
-                    const maxY = (referenceHeight - tag.offsetHeight) * (window.innerHeight / referenceHeight);
+                    const maxX = window.innerWidth - tag.offsetWidth;
+                    const maxY = window.innerHeight - tag.offsetHeight;
 
                     newX = Math.max(0, Math.min(newX, maxX));
-                    newY = Math.max(100 * (window.innerHeight / referenceHeight), Math.min(newY, maxY));
+                    newY = Math.max(100, Math.min(newY, maxY));
 
                     tag.style.left = `${newX}px`;
                     tag.style.top = `${newY}px`;
@@ -526,11 +655,11 @@
                     const touch = e.touches[0];
                     let newX = touch.clientX - currentX;
                     let newY = touch.clientY - currentY;
-                    const maxX = (referenceWidth - tag.offsetWidth) * (window.innerWidth / referenceWidth);
-                    const maxY = (referenceHeight - tag.offsetHeight) * (window.innerHeight / referenceHeight);
+                    const maxX = window.innerWidth - tag.offsetWidth;
+                    const maxY = window.innerHeight - tag.offsetHeight;
 
                     newX = Math.max(0, Math.min(newX, maxX));
-                    newY = Math.max(100 * (window.innerHeight / referenceHeight), Math.min(newY, maxY));
+                    newY = Math.max(100, Math.min(newY, maxY));
 
                     tag.style.left = `${newX}px`;
                     tag.style.top = `${newY}px`;
@@ -563,19 +692,55 @@
                 isDragging = false;
             });
 
+            likeButton.addEventListener('click', () => {
+                const confessionRef = ref(db, `confessions/${id}`);
+                const currentLikes = likes || 0;
+                update(confessionRef, { likes: currentLikes + 1 }).catch(error => {
+                    console.error('更新点赞失败:', error);
+                    alert('点赞失败，请稍后重试！');
+                });
+            });
+
+            replyButton.addEventListener('click', () => {
+                replyInput.style.display = replyInput.style.display === 'none' ? 'block' : 'none';
+                if (replyInput.style.display === 'block') {
+                    replyInput.querySelector('textarea').focus();
+                }
+            });
+
+            // 修复：确保 submit-reply 按钮事件正确绑定
+            const submitReplyButton = replyInput.querySelector('.submit-reply');
+            submitReplyButton.addEventListener('click', () => {
+                const replyText = replyInput.querySelector('textarea').value.trim();
+                if (replyText === '') {
+                    alert('回复内容不能为空！');
+                    return;
+                }
+                console.log(`提交回复 for 标签 ${id}: ${replyText}`);
+                const confessionRef = ref(db, `confessions/${id}/replies`);
+                push(confessionRef, {
+                    text: replyText,
+                    timestamp: Date.now()
+                }).then(() => {
+                    console.log('回复提交成功');
+                    replyInput.querySelector('textarea').value = '';
+                    replyInput.style.display = 'none';
+                }).catch(error => {
+                    console.error('提交回复失败:', error);
+                    alert('提交回复失败，请检查网络！');
+                });
+            });
+
             return tag;
         }
 
         function shareLastConfession(confessionToShare) {
             console.log("shareLastConfession 函数被调用");
-            if (!confessionToShare) {
-                alert('没有可分享的表白！');
-                console.log("没有表白数据可分享");
-                return;
-            }
-
-            const tweetText = `${confessionToShare.text} — ${confessionToShare.signature} (来自 Sign表白墙)`;
             const tweetUrl = 'https://signlove.netlify.app/';
+            let tweetText = '来 Sign表白墙分享你的心动吧！';
+            if (confessionToShare) {
+                tweetText = `${confessionToShare.text} — ${confessionToShare.signature} (来自 Sign表白墙)`;
+            }
             const url = `https://x.com/intent/tweet?text=${encodeURIComponent(tweetText)}&url=${encodeURIComponent(tweetUrl)}`;
             window.open(url, '_blank');
             console.log("分享链接:", url);
@@ -643,14 +808,15 @@
                 if (!snapshot.exists()) {
                     console.log("数据库为空，初始化示例表白");
                     sampleMessages.forEach(sample => {
-                        const { xPercent, yPercent } = getRandomPosition();
+                        const { xPercent, yPercent } = getRandomPosition(renderedTags);
                         const randomColor = colors[Math.floor(Math.random() * colors.length)];
                         push(confessionsRef, {
                             text: sample.message,
                             signature: sample.signature,
                             xPercent,
                             yPercent,
-                            color: randomColor
+                            color: randomColor,
+                            likes: 0
                         }).catch((error) => {
                             console.error('初始化示例表白失败:', error);
                         });
@@ -697,10 +863,20 @@
                             tag.style.top = `${newY}px`;
                             tag.querySelector('div').textContent = conf.text;
                             tag.querySelector('.signature').textContent = `— ${conf.signature}`;
+                            tag.querySelector('.like-button span').textContent = conf.likes || 0;
                             tag.style.backgroundColor = conf.color || colors[Math.floor(Math.random() * colors.length)];
+
+                            const repliesContainer = tag.querySelector('.replies');
+                            repliesContainer.innerHTML = '';
+                            Object.entries(conf.replies || {}).forEach(([replyId, reply]) => {
+                                const replyNode = document.createElement('div');
+                                replyNode.className = 'reply';
+                                replyNode.textContent = `${reply.text} — ${new Date(reply.timestamp).toLocaleTimeString()}`;
+                                repliesContainer.appendChild(replyNode);
+                            });
                             console.log(`更新标签 ID: ${id}, xPercent=${xPercent}, yPercent=${yPercent}`);
                         } else {
-                            const tag = createTag(conf.text, conf.signature, xPercent, yPercent, conf.color || colors[Math.floor(Math.random() * colors.length)], id);
+                            const tag = createTag(conf.text, conf.signature, xPercent, yPercent, conf.color || colors[Math.floor(Math.random() * colors.length)], id, conf.likes, conf.replies);
                             renderedTags.set(id, tag);
                             console.log(`创建标签 ID: ${id}, xPercent=${xPercent}, yPercent=${yPercent}`);
                         }
@@ -714,6 +890,7 @@
                 }
             }, (error) => {
                 console.error('加载表白失败:', error);
+                alert('无法加载表白数据，请稍后重试！');
             });
         });
     </script>
