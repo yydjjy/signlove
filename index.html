@@ -407,6 +407,66 @@
             transform: scale(0.95);
         }
 
+        /* 新增：搜索相关样式 */
+        .search-container {
+            position: absolute;
+            top: 10px;
+            right: 80px; /* 留出空间给语言切换按钮 */
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        #searchInput {
+            padding: 5px 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 14px;
+            width: 150px;
+            box-sizing: border-box;
+        }
+
+        .clear-search-button {
+            background: none;
+            border: none;
+            color: #ff5722;
+            font-size: 16px;
+            cursor: pointer;
+            display: none; /* 默认隐藏 */
+        }
+
+        .clear-search-button:hover {
+            color: #e64a19;
+        }
+
+        .confession-tag.match {
+            border: 2px solid #ff9800;
+            animation: highlight 0.5s ease-in-out;
+        }
+
+        .confession-tag.hidden {
+            display: none;
+        }
+
+        .no-results {
+            position: fixed;
+            top: 120px;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: #ff5722;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 5px;
+            z-index: 1002;
+            display: none;
+        }
+
+        @keyframes highlight {
+            0% { border-color: transparent; }
+            50% { border-color: #ff9800; }
+            100% { border-color: #ff9800; }
+        }
+
         @media (max-width: 768px) {
             .input-area {
                 width: 90%;
@@ -450,6 +510,21 @@
                 font-size: 12px;
                 padding: 4px 8px;
             }
+
+            /* 新增：移动端搜索样式 */
+            .search-container {
+                right: 60px;
+                top: 8px;
+            }
+
+            #searchInput {
+                width: 100px;
+                font-size: 12px;
+            }
+
+            .clear-search-button {
+                font-size: 14px;
+            }
         }
     </style>
 </head>
@@ -461,6 +536,11 @@
         <span class="click-hint">👆</span>
         <span class="heart">♥</span>
         <button id="languageToggle" class="language-toggle">English</button>
+        <!-- 新增：搜索输入框和清除按钮 -->
+        <div class="search-container">
+            <input type="text" id="searchInput" placeholder="搜索表白或签名" aria-label="搜索表白或签名" />
+            <button id="clearSearchButton" class="clear-search-button" aria-label="清除搜索">×</button>
+        </div>
     </div>
     <div class="input-area" id="inputArea">
         <button id="closeButton" class="close-button">×</button>
@@ -470,6 +550,8 @@
         <button id="shareButton" class="share-button">分享</button>
     </div>
     <div id="successMessage" class="success-message">表白成功！</div>
+    <!-- 新增：无匹配结果提示 -->
+    <div id="noResultsMessage" class="no-results">无匹配结果</div>
     <div class="credit">Made by @carmel_qveen27</div>
     <div class="quote">每一份表白都是心底最真挚的感情</div>
 
@@ -540,7 +622,11 @@
                 collapse: '收起',
                 successMessage: '表白成功！',
                 credit: 'Made by @carmel_qveen27',
-                quote: '每一份表白都是心底最真挚的感情'
+                quote: '每一份表白都是心底最真挚的感情',
+                // 新增：搜索相关文本
+                searchPlaceholder: '搜索表白或签名',
+                clearSearchButton: '清除',
+                noResults: '无匹配结果'
             },
             en: {
                 title: 'Sign Love Wall',
@@ -556,7 +642,11 @@
                 collapse: 'Collapse',
                 successMessage: 'Confession submitted!',
                 credit: 'Made by @carmel_qveen27',
-                quote: 'Every confession is the truest feeling from the heart'
+                quote: 'Every confession is the truest feeling from the heart',
+                // 新增：搜索相关文本
+                searchPlaceholder: 'Search confession or signature',
+                clearSearchButton: 'Clear',
+                noResults: 'No matching results'
             }
         };
 
@@ -573,6 +663,10 @@
             document.querySelector('.credit').textContent = langData[currentLang].credit;
             document.querySelector('.quote').textContent = langData[currentLang].quote;
             document.getElementById('languageToggle').textContent = currentLang === 'zh' ? 'English' : '中文';
+            // 新增：更新搜索相关UI
+            document.getElementById('searchInput').placeholder = langData[currentLang].searchPlaceholder;
+            document.getElementById('clearSearchButton').setAttribute('aria-label', langData[currentLang].clearSearchButton);
+            document.getElementById('noResultsMessage').textContent = langData[currentLang].noResults;
             renderedTags.forEach(tag => {
                 tag.querySelector('.reply-button').textContent = langData[currentLang].replyButton;
                 const submitReply = tag.querySelector('.submit-reply');
@@ -732,6 +826,9 @@
             tag.style.backgroundColor = color;
             tag.dataset.id = id;
             tag.dataset.repliesHash = JSON.stringify(replies || {});
+            // 新增：存储文本和签名用于搜索
+            tag.dataset.text = text.toLowerCase();
+            tag.dataset.signature = signature.toLowerCase();
 
             const x = (xPercent / 100) * window.innerWidth;
             const y = (yPercent / 100) * window.innerHeight;
@@ -1021,8 +1118,12 @@
             const inputArea = document.getElementById('inputArea');
             const closeButton = document.getElementById('closeButton');
             const languageToggle = document.getElementById('languageToggle');
+            // 新增：搜索相关DOM元素
+            const searchInput = document.getElementById('searchInput');
+            const clearSearchButton = document.getElementById('clearSearchButton');
+            const noResultsMessage = document.getElementById('noResultsMessage');
 
-            if (!confessionInput || !signatureInput || !confessButton || !shareButton || !confessLoveButton || !inputArea || !closeButton || !languageToggle) {
+            if (!confessionInput || !signatureInput || !confessButton || !shareButton || !confessLoveButton || !inputArea || !closeButton || !languageToggle || !searchInput || !clearSearchButton || !noResultsMessage) {
                 console.error('无法找到必要的 DOM 元素:', {
                     confessionInput: !!confessionInput,
                     signatureInput: !!signatureInput,
@@ -1031,7 +1132,10 @@
                     confessLoveButton: !!confessLoveButton,
                     inputArea: !!inputArea,
                     closeButton: !!closeButton,
-                    languageToggle: !!languageToggle
+                    languageToggle: !!languageToggle,
+                    searchInput: !!searchInput,
+                    clearSearchButton: !!clearSearchButton,
+                    noResultsMessage: !!noResultsMessage
                 });
                 return;
             }
@@ -1077,6 +1181,33 @@
                 currentLang = currentLang === 'zh' ? 'en' : 'zh';
                 localStorage.setItem('lang', currentLang);
                 updateLanguage();
+            });
+
+            // 新增：实时搜索功能
+            searchInput.addEventListener('input', () => {
+                const query = searchInput.value.trim().toLowerCase();
+                clearSearchButton.style.display = query ? 'block' : 'none';
+                let matchCount = 0;
+
+                renderedTags.forEach(tag => {
+                    const isMatch = tag.dataset.text.includes(query) || tag.dataset.signature.includes(query);
+
+                    tag.classList.toggle('match', isMatch && query);
+                    tag.classList.toggle('hidden', !isMatch && query);
+                    if (isMatch) matchCount++;
+                });
+
+                noResultsMessage.style.display = query && matchCount === 0 ? 'block' : 'none';
+            });
+
+            // 新增：清除搜索
+            clearSearchButton.addEventListener('click', () => {
+                searchInput.value = '';
+                clearSearchButton.style.display = 'none';
+                noResultsMessage.style.display = 'none';
+                renderedTags.forEach(tag => {
+                    tag.classList.remove('match', 'hidden');
+                });
             });
 
             onValue(confessionsRef, (snapshot) => {
@@ -1140,6 +1271,9 @@
                             tag.querySelector('.signature').textContent = `— ${conf.signature}`;
                             tag.querySelector('.like-button span').textContent = conf.likes || 0;
                             tag.style.backgroundColor = conf.color || colors[Math.floor(Math.random() * colors.length)];
+                            // 新增：更新搜索数据
+                            tag.dataset.text = conf.text.toLowerCase();
+                            tag.dataset.signature = conf.signature.toLowerCase();
 
                             const newRepliesHash = JSON.stringify(conf.replies || {});
                             if (tag.dataset.repliesHash !== newRepliesHash) {
