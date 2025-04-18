@@ -13,6 +13,7 @@
             font-family: 'Arial', sans-serif;
             width: 100%;
             overflow: auto;
+            touch-action: manipulation;
         }
 
         .header {
@@ -95,12 +96,21 @@
             border-radius: 5px;
             cursor: pointer;
             font-size: 16px;
-            transition: background-color 0.3s;
+            transition: background-color 0.3s, opacity 0.3s;
             margin-right: 10px;
         }
 
         button:hover {
             background-color: #e64a19;
+        }
+
+        button:active {
+            transform: scale(0.95);
+        }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
         }
 
         .confess-love-button {
@@ -134,6 +144,24 @@
             background-color: #0d95e8;
         }
 
+        .language-toggle {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background-color: #ff5722;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background-color 0.3s;
+        }
+
+        .language-toggle:hover {
+            background-color: #e64a19;
+        }
+
         .credit {
             position: fixed;
             bottom: 30px;
@@ -158,7 +186,7 @@
 
         .confession-tag {
             position: absolute;
-            padding: 15px;
+            padding: 10px;
             border-radius: 10px;
             box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
             max-width: 200px;
@@ -168,6 +196,54 @@
             z-index: 1;
             box-sizing: border-box;
             animation: float 2s ease-in-out infinite;
+            touch-action: none;
+            will-change: transform, background-color, border, box-shadow, filter;
+        }
+
+        .confession-tag:active {
+            opacity: 0.9;
+        }
+
+        .confession-tag.new-tag-effect {
+            animation: newTagEffect 5s ease-in-out forwards;
+            border: 2px solid transparent;
+        }
+
+        @keyframes newTagEffect {
+            0% {
+                transform: scale(1.3) rotate(0deg);
+                background-color: #fff59d;
+                border-color: #fff;
+                box-shadow: 0 0 20px rgba(255, 0, 0, 0.8),
+                            0 0 40px rgba(255, 165, 0, 0.6),
+                            0 0 60px rgba(255, 255, 0, 0.4);
+                filter: hue-rotate(0deg);
+            }
+            33% {
+                transform: scale(1.1) rotate(5deg);
+                background-color: #b2ff59;
+                border-color: rgba(255, 255, 255, 0.5);
+                box-shadow: 0 0 20px rgba(0, 255, 0, 0.8),
+                            0 0 40px rgba(0, 255, 255, 0.6),
+                            0 0 60px rgba(0, 128, 255, 0.4);
+                filter: hue-rotate(120deg);
+            }
+            66% {
+                transform: scale(1.1) rotate(-5deg);
+                background-color: #4fc3f7;
+                border-color: rgba(255, 255, 255, 0.5);
+                box-shadow: 0 0 20px rgba(0, 0, 255, 0.8),
+                            0 0 40px rgba(255, 0, 255, 0.6),
+                            0 0 60px rgba(128, 0, 255, 0.4);
+                filter: hue-rotate(240deg);
+            }
+            100% {
+                transform: scale(1) rotate(0deg);
+                background-color: inherit;
+                border-color: transparent;
+                box-shadow: none;
+                filter: none;
+            }
         }
 
         @keyframes float {
@@ -226,14 +302,24 @@
             color: #ff0000;
             cursor: pointer;
             font-size: 14px;
-            margin-top: 5px;
+            margin: 2px 0;
             display: flex;
             align-items: center;
             gap: 5px;
+            transition: opacity 0.3s;
         }
 
         .like-button:hover {
             color: #e60000;
+        }
+
+        .like-button:active {
+            transform: scale(0.95);
+        }
+
+        .like-button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
         }
 
         .reply-button {
@@ -242,11 +328,24 @@
             color: #1da1f2;
             cursor: pointer;
             font-size: 14px;
-            margin-top: 5px;
+            margin: 2px 0;
+            touch-action: auto;
+        }
+
+        .reply-button:active {
+            transform: scale(0.95);
         }
 
         .reply-input {
-            margin-top: 5px;
+            display: none;
+            margin-top: 2px;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .reply-input.visible {
+            display: block;
+            opacity: 1;
         }
 
         .reply-input textarea {
@@ -270,16 +369,42 @@
         }
 
         .replies {
-            margin-top: 5px;
+            margin-top: 2px;
             font-size: 12px;
             color: #333;
         }
 
         .reply {
-            margin: 5px 0;
+            margin: 2px 0;
             padding: 5px;
             background: rgba(255, 255, 255, 0.8);
             border-radius: 5px;
+        }
+
+        .replies-hidden {
+            margin-top: 2px;
+            display: none;
+        }
+
+        .replies-hidden.show {
+            display: block;
+        }
+
+        .toggle-replies {
+            background: none;
+            border: none;
+            color: #1da1f2;
+            cursor: pointer;
+            font-size: 12px;
+            margin-top: 2px;
+            display: block;
+            text-align: left;
+            width: 100%;
+            z-index: 10;
+        }
+
+        .toggle-replies:active {
+            transform: scale(0.95);
         }
 
         @media (max-width: 768px) {
@@ -308,7 +433,7 @@
             .confession-tag {
                 max-width: 150px;
                 font-size: 14px;
-                padding: 10px;
+                padding: 8px;
             }
 
             .signature {
@@ -320,6 +445,11 @@
                 top: 8px;
                 right: 8px;
             }
+
+            .language-toggle {
+                font-size: 12px;
+                padding: 4px 8px;
+            }
         }
     </style>
 </head>
@@ -330,6 +460,7 @@
         <button id="confessLoveButton" class="confess-love-button">表白爱</button>
         <span class="click-hint">👆</span>
         <span class="heart">♥</span>
+        <button id="languageToggle" class="language-toggle">English</button>
     </div>
     <div class="input-area" id="inputArea">
         <button id="closeButton" class="close-button">×</button>
@@ -392,12 +523,76 @@
         let lastConfession = null;
         let allConfessions = [];
         const renderedTags = new Map();
-        let maxZIndex = 1; // 新增：跟踪最大 z-index
+        let maxZIndex = 1;
+
+        const langData = {
+            zh: {
+                title: 'Sign表白墙',
+                confessButton: '表白',
+                confessLoveButton: '表白爱',
+                shareButton: '分享',
+                confessionPlaceholder: '写下你的表白（最多200字）',
+                signaturePlaceholder: '你的签名（最多20字）',
+                replyButton: '回复',
+                replyPlaceholder: '写下你的回复（最多100字）',
+                submitReply: '提交',
+                viewMore: '查看更多',
+                collapse: '收起',
+                successMessage: '表白成功！',
+                credit: 'Made by @carmel_qveen27',
+                quote: '每一份表白都是心底最真挚的感情'
+            },
+            en: {
+                title: 'Sign Love Wall',
+                confessButton: 'Confess',
+                confessLoveButton: 'Confess Love',
+                shareButton: 'Share',
+                confessionPlaceholder: 'Write your confession (max 200 chars)',
+                signaturePlaceholder: 'Your signature (max 20 chars)',
+                replyButton: 'Reply',
+                replyPlaceholder: 'Write your reply (max 100 chars)',
+                submitReply: 'Submit',
+                viewMore: 'View More',
+                collapse: 'Collapse',
+                successMessage: 'Confession submitted!',
+                credit: 'Made by @carmel_qveen27',
+                quote: 'Every confession is the truest feeling from the heart'
+            }
+        };
+
+        let currentLang = localStorage.getItem('lang') || 'zh';
+
+        function updateLanguage() {
+            document.querySelector('.title').textContent = langData[currentLang].title;
+            document.getElementById('confessButton').textContent = langData[currentLang].confessButton;
+            document.getElementById('confessLoveButton').textContent = langData[currentLang].confessLoveButton;
+            document.getElementById('shareButton').textContent = langData[currentLang].shareButton;
+            document.getElementById('confessionInput').placeholder = langData[currentLang].confessionPlaceholder;
+            document.getElementById('signatureInput').placeholder = langData[currentLang].signaturePlaceholder;
+            document.getElementById('successMessage').textContent = langData[currentLang].successMessage;
+            document.querySelector('.credit').textContent = langData[currentLang].credit;
+            document.querySelector('.quote').textContent = langData[currentLang].quote;
+            document.getElementById('languageToggle').textContent = currentLang === 'zh' ? 'English' : '中文';
+            renderedTags.forEach(tag => {
+                tag.querySelector('.reply-button').textContent = langData[currentLang].replyButton;
+                const submitReply = tag.querySelector('.submit-reply');
+                if (submitReply) submitReply.textContent = langData[currentLang].submitReply;
+                const replyInput = tag.querySelector('.reply-input textarea');
+                if (replyInput) replyInput.placeholder = langData[currentLang].replyPlaceholder;
+                const toggleButton = tag.querySelector('.toggle-replies');
+                if (toggleButton) {
+                    const replyCount = tag.querySelectorAll('.replies-hidden .reply').length;
+                    toggleButton.textContent = toggleButton.textContent.includes(langData[currentLang].collapse)
+                        ? langData[currentLang].collapse
+                        : `${langData[currentLang].viewMore} (${replyCount})`;
+                }
+            });
+        }
 
         function checkLimit(element, maxLength) {
             const value = element.value;
             if (value.length >= maxLength) {
-                alert(`输入已达到上限（${maxLength}字），请精简内容！`);
+                alert(currentLang === 'zh' ? `输入已达到上限（${maxLength}字），请精简内容！` : `Input has reached the limit (${maxLength} chars), please shorten it!`);
             }
         }
 
@@ -497,10 +692,10 @@
             const confessionInput = document.getElementById('confessionInput');
             const signatureInput = document.getElementById('signatureInput');
             const confessionText = confessionInput.value.trim();
-            const signatureText = signatureInput.value.trim() || '匿名';
+            const signatureText = signatureInput.value.trim() || (currentLang === 'zh' ? '匿名' : 'Anonymous');
 
             if (confessionText === '') {
-                alert('请写下你的表白内容！');
+                alert(currentLang === 'zh' ? '请写下你的表白内容！' : 'Please write your confession!');
                 console.log("表白内容为空，停止执行");
                 return;
             }
@@ -513,7 +708,7 @@
 
             console.log("新表白数据:", newConfession);
 
-            push(confessionsRef, newConfession).then(() => {
+            push(confessionsRef, newConfession).then((snapshot) => {
                 console.log("表白提交成功");
                 lastConfession = newConfession;
                 confessionInput.value = '';
@@ -527,20 +722,31 @@
                 }, 2000);
             }).catch((error) => {
                 console.error('提交表白失败:', error);
-                alert('提交表白失败，请检查网络或 Firebase 配置！');
+                alert(currentLang === 'zh' ? '提交表白失败，请检查网络或 Firebase 配置！' : 'Failed to submit confession, please check network or Firebase config!');
             });
         }
 
-        function createTag(text, signature, xPercent, yPercent, color, id, likes = 0, replies = {}) {
+        function createTag(text, signature, xPercent, yPercent, color, id, likes = 0, replies = {}, isNew = false) {
             const tag = document.createElement('div');
             tag.className = 'confession-tag';
             tag.style.backgroundColor = color;
             tag.dataset.id = id;
+            tag.dataset.repliesHash = JSON.stringify(replies || {});
 
             const x = (xPercent / 100) * window.innerWidth;
             const y = (yPercent / 100) * window.innerHeight;
             tag.style.left = `${x}px`;
             tag.style.top = `${y}px`;
+
+            if (isNew) {
+                tag.classList.add('new-tag-effect');
+                setTimeout(() => {
+                    tag.classList.remove('new-tag-effect');
+                    tag.style.backgroundColor = '';
+                    tag.style.border = '';
+                    tag.style.filter = '';
+                }, 5000);
+            }
 
             const textNode = document.createElement('div');
             textNode.textContent = text;
@@ -554,22 +760,21 @@
             likeButton.className = 'like-button';
             likeButton.dataset.id = id;
             likeButton.innerHTML = `❤️ <span>${likes}</span>`;
-            likeButton.setAttribute('aria-label', '点赞此表白');
+            likeButton.setAttribute('aria-label', currentLang === 'zh' ? '点赞此表白' : 'Like this confession');
             tag.appendChild(likeButton);
 
             const replyButton = document.createElement('button');
             replyButton.className = 'reply-button';
             replyButton.dataset.id = id;
-            replyButton.textContent = '回复';
-            replyButton.setAttribute('aria-label', '回复此表白');
+            replyButton.textContent = langData[currentLang].replyButton;
+            replyButton.setAttribute('aria-label', currentLang === 'zh' ? '回复此表白' : 'Reply to this confession');
             tag.appendChild(replyButton);
 
             const replyInput = document.createElement('div');
             replyInput.className = 'reply-input';
-            replyInput.style.display = 'none';
             replyInput.innerHTML = `
-                <textarea placeholder="写下你的回复（最多100字）" maxlength="100"></textarea>
-                <button class="submit-reply">提交</button>
+                <textarea placeholder="${langData[currentLang].replyPlaceholder}" maxlength="100"></textarea>
+                <button class="submit-reply">${langData[currentLang].submitReply}</button>
             `;
             tag.appendChild(replyInput);
 
@@ -577,12 +782,46 @@
             repliesContainer.className = 'replies';
             tag.appendChild(repliesContainer);
 
-            Object.entries(replies || {}).forEach(([replyId, reply]) => {
+            const hiddenRepliesContainer = document.createElement('div');
+            hiddenRepliesContainer.className = 'replies-hidden';
+            tag.appendChild(hiddenRepliesContainer);
+
+            const sortedReplies = Object.entries(replies || {})
+                .map(([replyId, reply]) => ({ replyId, ...reply }))
+                .sort((a, b) => b.timestamp - a.timestamp);
+
+            if (sortedReplies.length > 0) {
+                const latestReply = sortedReplies[0];
                 const replyNode = document.createElement('div');
                 replyNode.className = 'reply';
-                replyNode.textContent = `${reply.text} — ${new Date(reply.timestamp).toLocaleTimeString()}`;
+                replyNode.textContent = `${latestReply.text} — ${new Date(latestReply.timestamp).toLocaleTimeString()}`;
                 repliesContainer.appendChild(replyNode);
-            });
+            }
+
+            if (sortedReplies.length > 1) {
+                sortedReplies.slice(1).forEach(reply => {
+                    const replyNode = document.createElement('div');
+                    replyNode.className = 'reply';
+                    replyNode.textContent = `${reply.text} — ${new Date(reply.timestamp).toLocaleTimeString()}`;
+                    hiddenRepliesContainer.appendChild(replyNode);
+                });
+
+                let toggleButton = tag.querySelector('.toggle-replies');
+                if (!toggleButton) {
+                    toggleButton = document.createElement('button');
+                    toggleButton.className = 'toggle-replies';
+                    tag.appendChild(toggleButton);
+                }
+                toggleButton.textContent = langData[currentLang].viewMore ? `${langData[currentLang].viewMore} (${sortedReplies.length - 1})` : `查看更多 (${sortedReplies.length - 1})`;
+                toggleButton.addEventListener('click', () => {
+                    const isExpanded = hiddenRepliesContainer.classList.contains('show');
+                    hiddenRepliesContainer.classList.toggle('show', !isExpanded);
+                    toggleButton.textContent = isExpanded
+                        ? (langData[currentLang].viewMore ? `${langData[currentLang].viewMore} (${sortedReplies.length - 1})` : `查看更多 (${sortedReplies.length - 1})`)
+                        : (langData[currentLang].collapse || '收起');
+                });
+                console.log(`创建/更新 toggleButton for 标签 ${id}, 回复数: ${sortedReplies.length}`);
+            }
 
             const angle = Math.random() * 20 - 10;
             tag.style.transform = `rotate(${angle}deg)`;
@@ -592,6 +831,8 @@
 
             let isDragging = false;
             let currentX, currentY;
+            let touchStartTime = 0;
+            let touchMoved = false;
 
             const debounce = (func, wait) => {
                 let timeout;
@@ -608,37 +849,46 @@
                 });
             }, 500);
 
-            // 新增：点击标签置顶
+            const handleLike = debounce(() => {
+                likeButton.disabled = true;
+                const confessionRef = ref(db, `confessions/${id}`);
+                const currentLikes = parseInt(likeButton.querySelector('span').textContent) || 0;
+                likeButton.querySelector('span').textContent = currentLikes + 1;
+                update(confessionRef, { likes: currentLikes + 1 }).then(() => {
+                    console.log(`点赞成功 for 标签 ${id}, 当前点赞数: ${currentLikes + 1}`);
+                }).catch(error => {
+                    console.error('更新点赞失败:', error);
+                    likeButton.querySelector('span').textContent = currentLikes;
+                    alert(currentLang === 'zh' ? '点赞失败，请稍后重试！' : 'Failed to like, please try again later!');
+                }).finally(() => {
+                    likeButton.disabled = false;
+                });
+            }, 500);
+
             tag.addEventListener('click', (e) => {
-                // 避免拖动或按钮点击时触发置顶
-                if (!isDragging && e.target !== likeButton && e.target !== replyButton && !e.target.closest('.submit-reply') && !e.target.closest('textarea')) {
+                if (!isDragging && !e.target.closest('.like-button') && !e.target.closest('.reply-button') && !e.target.closest('.submit-reply') && !e.target.closest('textarea') && !e.target.closest('.toggle-replies')) {
                     maxZIndex += 1;
                     tag.style.zIndex = maxZIndex;
                     console.log(`标签 ${id} 置顶，z-index: ${maxZIndex}`);
                 }
             });
 
-            tag.addEventListener('mousedown', function(e) {
-                if (e.target.closest('.reply-input')) return; // 避免输入框拖动
-                isDragging = true;
-                currentX = e.clientX - parseInt(tag.style.left);
-                currentY = e.clientY - parseInt(tag.style.top);
-                e.preventDefault();
-            });
-
             tag.addEventListener('touchstart', function(e) {
-                if (e.target.closest('.reply-input')) return;
+                touchStartTime = Date.now();
+                touchMoved = false;
+                if (e.target.closest('.reply-button') || e.target.closest('.reply-input') || e.target.closest('.toggle-replies')) return;
                 isDragging = true;
                 const touch = e.touches[0];
                 currentX = touch.clientX - parseInt(tag.style.left);
                 currentY = touch.clientY - parseInt(tag.style.top);
-                e.preventDefault();
             });
 
-            tag.addEventListener('mousemove', function(e) {
+            tag.addEventListener('touchmove', function(e) {
                 if (isDragging) {
-                    let newX = e.clientX - currentX;
-                    let newY = e.clientY - currentY;
+                    touchMoved = true;
+                    const touch = e.touches[0];
+                    let newX = touch.clientX - currentX;
+                    let newY = touch.clientY - currentY;
                     const maxX = window.innerWidth - tag.offsetWidth;
                     const maxY = window.innerHeight - tag.offsetHeight;
 
@@ -650,11 +900,36 @@
                 }
             });
 
-            tag.addEventListener('touchmove', function(e) {
+            tag.addEventListener('touchend', function(e) {
                 if (isDragging) {
-                    const touch = e.touches[0];
-                    let newX = touch.clientX - currentX;
-                    let newY = touch.clientY - currentY;
+                    isDragging = false;
+                    if (!touchMoved && Date.now() - touchStartTime < 300) {
+                        if (!e.target.closest('.reply-button') && !e.target.closest('.like-button') && !e.target.closest('.submit-reply') && !e.target.closest('textarea') && !e.target.closest('.toggle-replies')) {
+                            const clickEvent = new Event('click', { bubbles: true });
+                            tag.dispatchEvent(clickEvent);
+                        }
+                    }
+                    if (touchMoved) {
+                        const newX = parseInt(tag.style.left);
+                        const newY = parseInt(tag.style.top);
+                        const newXPercent = (newX / window.innerWidth) * 100;
+                        const newYPercent = (newY / window.innerHeight) * 100;
+                        updatePosition(newXPercent, newYPercent);
+                    }
+                }
+            });
+
+            tag.addEventListener('mousedown', function(e) {
+                if (e.target.closest('.reply-button') || e.target.closest('.reply-input') || e.target.closest('.toggle-replies')) return;
+                isDragging = true;
+                currentX = e.clientX - parseInt(tag.style.left);
+                currentY = e.clientY - parseInt(tag.style.top);
+            });
+
+            tag.addEventListener('mousemove', function(e) {
+                if (isDragging) {
+                    let newX = e.clientX - currentX;
+                    let newY = e.clientY - currentY;
                     const maxX = window.innerWidth - tag.offsetWidth;
                     const maxY = window.innerHeight - tag.offsetHeight;
 
@@ -677,43 +952,32 @@
                 }
             });
 
-            tag.addEventListener('touchend', function() {
-                if (isDragging) {
-                    isDragging = false;
-                    const newX = parseInt(tag.style.left);
-                    const newY = parseInt(tag.style.top);
-                    const newXPercent = (newX / window.innerWidth) * 100;
-                    const newYPercent = (newY / window.innerHeight) * 100;
-                    updatePosition(newXPercent, newYPercent);
-                }
-            });
-
             tag.addEventListener('mouseleave', function() {
                 isDragging = false;
             });
 
-            likeButton.addEventListener('click', () => {
-                const confessionRef = ref(db, `confessions/${id}`);
-                const currentLikes = likes || 0;
-                update(confessionRef, { likes: currentLikes + 1 }).catch(error => {
-                    console.error('更新点赞失败:', error);
-                    alert('点赞失败，请稍后重试！');
-                });
-            });
+            likeButton.addEventListener('click', handleLike);
 
-            replyButton.addEventListener('click', () => {
-                replyInput.style.display = replyInput.style.display === 'none' ? 'block' : 'none';
-                if (replyInput.style.display === 'block') {
-                    replyInput.querySelector('textarea').focus();
+            replyButton.addEventListener('click', (e) => {
+                e.stopPropagation();
+                console.log(`回复按钮点击 for 标签 ${id}`);
+                const isVisible = replyInput.classList.contains('visible');
+                replyInput.classList.toggle('visible', !isVisible);
+                if (!isVisible) {
+                    const textarea = replyInput.querySelector('textarea');
+                    textarea.focus();
+                    setTimeout(() => {
+                        replyInput.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                    }, 100);
                 }
             });
 
-            // 修复：确保 submit-reply 按钮事件正确绑定
             const submitReplyButton = replyInput.querySelector('.submit-reply');
-            submitReplyButton.addEventListener('click', () => {
+            submitReplyButton.addEventListener('click', (e) => {
+                e.stopPropagation();
                 const replyText = replyInput.querySelector('textarea').value.trim();
                 if (replyText === '') {
-                    alert('回复内容不能为空！');
+                    alert(currentLang === 'zh' ? '回复内容不能为空！' : 'Reply cannot be empty!');
                     return;
                 }
                 console.log(`提交回复 for 标签 ${id}: ${replyText}`);
@@ -724,10 +988,10 @@
                 }).then(() => {
                     console.log('回复提交成功');
                     replyInput.querySelector('textarea').value = '';
-                    replyInput.style.display = 'none';
+                    replyInput.classList.remove('visible');
                 }).catch(error => {
                     console.error('提交回复失败:', error);
-                    alert('提交回复失败，请检查网络！');
+                    alert(currentLang === 'zh' ? '提交回复失败，请检查网络！' : 'Failed to submit reply, please check network!');
                 });
             });
 
@@ -737,9 +1001,9 @@
         function shareLastConfession(confessionToShare) {
             console.log("shareLastConfession 函数被调用");
             const tweetUrl = 'https://signlove.netlify.app/';
-            let tweetText = '来 Sign表白墙分享你的心动吧！';
+            let tweetText = currentLang === 'zh' ? '来 Sign表白墙分享你的心动吧！' : 'Come share your heartbeat on Sign Love Wall!';
             if (confessionToShare) {
-                tweetText = `${confessionToShare.text} — ${confessionToShare.signature} (来自 Sign表白墙)`;
+                tweetText = `${confessionToShare.text} — ${confessionToShare.signature} (${currentLang === 'zh' ? '来自 Sign表白墙' : 'from Sign Love Wall'})`;
             }
             const url = `https://x.com/intent/tweet?text=${encodeURIComponent(tweetText)}&url=${encodeURIComponent(tweetUrl)}`;
             window.open(url, '_blank');
@@ -756,8 +1020,9 @@
             const confessLoveButton = document.getElementById('confessLoveButton');
             const inputArea = document.getElementById('inputArea');
             const closeButton = document.getElementById('closeButton');
+            const languageToggle = document.getElementById('languageToggle');
 
-            if (!confessionInput || !signatureInput || !confessButton || !shareButton || !confessLoveButton || !inputArea || !closeButton) {
+            if (!confessionInput || !signatureInput || !confessButton || !shareButton || !confessLoveButton || !inputArea || !closeButton || !languageToggle) {
                 console.error('无法找到必要的 DOM 元素:', {
                     confessionInput: !!confessionInput,
                     signatureInput: !!signatureInput,
@@ -765,10 +1030,13 @@
                     shareButton: !!shareButton,
                     confessLoveButton: !!confessLoveButton,
                     inputArea: !!inputArea,
-                    closeButton: !!closeButton
+                    closeButton: !!closeButton,
+                    languageToggle: !!languageToggle
                 });
                 return;
             }
+
+            updateLanguage();
 
             confessionInput.addEventListener('input', function() {
                 checkLimit(this, 200);
@@ -802,6 +1070,13 @@
                 inputArea.style.display = 'none';
                 confessionInput.value = '';
                 signatureInput.value = '';
+            });
+
+            languageToggle.addEventListener('click', () => {
+                console.log("语言切换按钮被点击");
+                currentLang = currentLang === 'zh' ? 'en' : 'zh';
+                localStorage.setItem('lang', currentLang);
+                updateLanguage();
             });
 
             onValue(confessionsRef, (snapshot) => {
@@ -866,17 +1141,58 @@
                             tag.querySelector('.like-button span').textContent = conf.likes || 0;
                             tag.style.backgroundColor = conf.color || colors[Math.floor(Math.random() * colors.length)];
 
-                            const repliesContainer = tag.querySelector('.replies');
-                            repliesContainer.innerHTML = '';
-                            Object.entries(conf.replies || {}).forEach(([replyId, reply]) => {
-                                const replyNode = document.createElement('div');
-                                replyNode.className = 'reply';
-                                replyNode.textContent = `${reply.text} — ${new Date(reply.timestamp).toLocaleTimeString()}`;
-                                repliesContainer.appendChild(replyNode);
-                            });
+                            const newRepliesHash = JSON.stringify(conf.replies || {});
+                            if (tag.dataset.repliesHash !== newRepliesHash) {
+                                const repliesContainer = tag.querySelector('.replies');
+                                const hiddenRepliesContainer = tag.querySelector('.replies-hidden');
+                                const toggleButton = tag.querySelector('.toggle-replies');
+                                repliesContainer.innerHTML = '';
+                                hiddenRepliesContainer.innerHTML = '';
+                                if (toggleButton) toggleButton.remove();
+
+                                const sortedReplies = Object.entries(conf.replies || {})
+                                    .map(([replyId, reply]) => ({ replyId, ...reply }))
+                                    .sort((a, b) => b.timestamp - a.timestamp);
+
+                                if (sortedReplies.length > 0) {
+                                    const latestReply = sortedReplies[0];
+                                    const replyNode = document.createElement('div');
+                                    replyNode.className = 'reply';
+                                    replyNode.textContent = `${latestReply.text} — ${new Date(latestReply.timestamp).toLocaleTimeString()}`;
+                                    repliesContainer.appendChild(replyNode);
+                                }
+
+                                if (sortedReplies.length > 1) {
+                                    sortedReplies.slice(1).forEach(reply => {
+                                        const replyNode = document.createElement('div');
+                                        replyNode.className = 'reply';
+                                        replyNode.textContent = `${reply.text} — ${new Date(reply.timestamp).toLocaleTimeString()}`;
+                                        hiddenRepliesContainer.appendChild(replyNode);
+                                    });
+
+                                    let newToggleButton = tag.querySelector('.toggle-replies');
+                                    if (!newToggleButton) {
+                                        newToggleButton = document.createElement('button');
+                                        newToggleButton.className = 'toggle-replies';
+                                        tag.appendChild(newToggleButton);
+                                    }
+                                    newToggleButton.textContent = langData[currentLang].viewMore ? `${langData[currentLang].viewMore} (${sortedReplies.length - 1})` : `查看更多 (${sortedReplies.length - 1})`;
+                                    newToggleButton.addEventListener('click', () => {
+                                        const isExpanded = hiddenRepliesContainer.classList.contains('show');
+                                        hiddenRepliesContainer.classList.toggle('show', !isExpanded);
+                                        newToggleButton.textContent = isExpanded
+                                            ? (langData[currentLang].viewMore ? `${langData[currentLang].viewMore} (${sortedReplies.length - 1})` : `查看更多 (${sortedReplies.length - 1})`)
+                                            : (langData[currentLang].collapse || '收起');
+                                    });
+                                    console.log(`创建/更新 toggleButton for 标签 ${id}, 回复数: ${sortedReplies.length}`);
+                                }
+
+                                tag.dataset.repliesHash = newRepliesHash;
+                            }
+
                             console.log(`更新标签 ID: ${id}, xPercent=${xPercent}, yPercent=${yPercent}`);
                         } else {
-                            const tag = createTag(conf.text, conf.signature, xPercent, yPercent, conf.color || colors[Math.floor(Math.random() * colors.length)], id, conf.likes, conf.replies);
+                            const tag = createTag(conf.text, conf.signature, xPercent, yPercent, conf.color || colors[Math.floor(Math.random() * colors.length)], id, conf.likes, conf.replies, false);
                             renderedTags.set(id, tag);
                             console.log(`创建标签 ID: ${id}, xPercent=${xPercent}, yPercent=${yPercent}`);
                         }
@@ -890,7 +1206,7 @@
                 }
             }, (error) => {
                 console.error('加载表白失败:', error);
-                alert('无法加载表白数据，请稍后重试！');
+                alert(currentLang === 'zh' ? '无法加载表白数据，请稍后重试！' : 'Failed to load confessions, please try again later!');
             });
         });
     </script>
