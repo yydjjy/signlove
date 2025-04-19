@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sign表白墙</title>
+    <!-- 引入 emoji-picker -->
+    <script type="module" src="https://unpkg.com/emoji-picker-element@^1.0.0"></script>
     <style>
         body {
             margin: 0;
@@ -69,7 +71,7 @@
             box-sizing: border-box;
         }
 
-        textarea, input {
+        textarea, input[type="text"] {
             width: 100%;
             padding: 10px;
             margin-bottom: 10px;
@@ -407,11 +409,10 @@
             transform: scale(0.95);
         }
 
-        /* 新增：搜索相关样式 */
         .search-container {
             position: absolute;
             top: 10px;
-            right: 80px; /* 留出空间给语言切换按钮 */
+            right: 120px;
             display: flex;
             align-items: center;
             gap: 5px;
@@ -432,7 +433,7 @@
             color: #ff5722;
             font-size: 16px;
             cursor: pointer;
-            display: none; /* 默认隐藏 */
+            display: none;
         }
 
         .clear-search-button:hover {
@@ -465,6 +466,117 @@
             0% { border-color: transparent; }
             50% { border-color: #ff9800; }
             100% { border-color: #ff9800; }
+        }
+
+        .hot-sidebar {
+            position: fixed;
+            right: 0;
+            top: 120px;
+            width: 250px;
+            background: rgba(255, 255, 255, 0.9);
+            padding: 15px;
+            border-radius: 10px 0 0 10px;
+            box-shadow: -2px 0 5px rgba(0, 0, 0, 0.2);
+            z-index: 1000;
+            max-height: 70vh;
+            transform: translateX(100%); /* 初始隐藏 */
+            transition: transform 0.3s ease;
+        }
+
+        .hot-sidebar.visible {
+            transform: translateX(0); /* 显示时滑入 */
+        }
+
+        .hot-sidebar h3 {
+            margin: 0 0 10px;
+            font-size: 18px;
+            color: #ff5722;
+        }
+
+        .hot-confession {
+            margin-bottom: 10px;
+            padding: 10px;
+            background: rgba(255, 255, 255, 0.8);
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        .hot-confession:hover {
+            background: rgba(255, 235, 235, 0.8);
+        }
+
+        .hot-confession p {
+            margin: 0;
+            font-size: 14px;
+            color: #333;
+        }
+
+        .hot-confession .signature {
+            font-size: 12px;
+            color: #808080;
+        }
+
+        #toggleSidebarButton {
+            position: fixed;
+            top: 120px; /* 与侧边栏顶部对齐 */
+            right: 10px; /* 固定在右上角 */
+            background-color: #ff5722;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            z-index: 1002;
+            transition: background-color 0.3s ease, transform 0.3s ease;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+        }
+
+        #toggleSidebarButton:hover {
+            background-color: #e64a19;
+            transform: scale(1.1);
+        }
+
+        .scroll-container {
+            height: calc(70vh - 60px);
+            overflow: hidden;
+            position: relative;
+        }
+
+        .scroll-content {
+            animation: scroll 40s linear infinite;
+        }
+
+        .hot-sidebar:not(.visible) .scroll-content {
+            animation-play-state: paused;
+        }
+
+        .scroll-container:hover .scroll-content {
+            animation-play-state: paused;
+        }
+
+        @keyframes scroll {
+            0% { transform: translateY(0); }
+            100% { transform: translateY(-50%); }
+        }
+
+        .char-count {
+            font-size: 12px;
+            color: #666;
+            text-align: right;
+            margin-bottom: 5px;
+        }
+
+        .emoji-picker {
+            margin-bottom: 10px;
+            width: 100%;
+            max-height: 150px;
+            overflow-y: auto;
+        }
+
+        emoji-picker {
+            --emoji-size: 20px;
+            --num-columns: 8;
         }
 
         @media (max-width: 768px) {
@@ -511,9 +623,8 @@
                 padding: 4px 8px;
             }
 
-            /* 新增：移动端搜索样式 */
             .search-container {
-                right: 60px;
+                right: 70px;
                 top: 8px;
             }
 
@@ -525,6 +636,30 @@
             .clear-search-button {
                 font-size: 14px;
             }
+
+            .hot-sidebar {
+                width: 200px;
+                top: 100px;
+            }
+
+            #toggleSidebarButton {
+                top: 100px; /* 与侧边栏对齐 */
+                right: 5px;
+                padding: 6px 12px;
+                font-size: 12px;
+            }
+
+            .emoji-picker {
+                max-height: 100px;
+            }
+
+            emoji-picker {
+                --emoji-size: 16px;
+            }
+
+            .scroll-content {
+                animation-duration: 32s;
+            }
         }
     </style>
 </head>
@@ -535,8 +670,12 @@
         <button id="confessLoveButton" class="confess-love-button">表白爱</button>
         <span class="click-hint">👆</span>
         <span class="heart">♥</span>
-        <button id="languageToggle" class="language-toggle">English</button>
-        <!-- 新增：搜索输入框和清除按钮 -->
+        <select id="languageToggle" class="language-toggle">
+            <option value="zh">中文</option>
+            <option value="en">English</option>
+            <option value="ja">日本語</option>
+            <option value="ko">한국어</option>
+        </select>
         <div class="search-container">
             <input type="text" id="searchInput" placeholder="搜索表白或签名" aria-label="搜索表白或签名" />
             <button id="clearSearchButton" class="clear-search-button" aria-label="清除搜索">×</button>
@@ -545,13 +684,24 @@
     <div class="input-area" id="inputArea">
         <button id="closeButton" class="close-button">×</button>
         <textarea id="confessionInput" placeholder="写下你的表白（最多200字）" maxlength="200"></textarea>
+        <div class="char-count">还可输入 <span id="confessionCharCount">200</span> 字</div>
+        <div class="emoji-picker">
+            <emoji-picker locale="zh"></emoji-picker>
+        </div>
         <input type="text" id="signatureInput" placeholder="你的签名（最多20字）" maxlength="20">
+        <div class="char-count">签名还可输入 <span id="signatureCharCount">20</span> 字</div>
         <button id="confessButton">表白</button>
         <button id="shareButton" class="share-button">分享</button>
     </div>
     <div id="successMessage" class="success-message">表白成功！</div>
-    <!-- 新增：无匹配结果提示 -->
     <div id="noResultsMessage" class="no-results">无匹配结果</div>
+    <button id="toggleSidebarButton" aria-label="显示热门榜">热门</button>
+    <div class="hot-sidebar" id="hotSidebar">
+        <h3>热门表白</h3>
+        <div class="scroll-container">
+            <div class="scroll-content" id="hotConfessions"></div>
+        </div>
+    </div>
     <div class="credit">Made by @carmel_qveen27</div>
     <div class="quote">每一份表白都是心底最真挚的感情</div>
 
@@ -576,20 +726,27 @@
             console.log("Firebase 初始化成功");
         } catch (error) {
             console.error("Firebase 初始化失败:", error);
-            alert("无法连接到数据库，请稍后重试！");
+            showError("无法连接到数据库，请稍后重试！");
         }
 
         const analytics = getAnalytics(app);
         const db = getDatabase(app);
         const confessionsRef = ref(db, 'confessions');
 
-        const colors = [
-            'rgba(255, 224, 224, 0.9)',
-            'rgba(255, 255, 224, 0.9)',
-            'rgba(224, 255, 224, 0.9)',
-            'rgba(224, 224, 255, 0.9)',
-            'rgba(255, 224, 224, 0.9)'
-        ];
+        const CONFIG = {
+            MAX_CONFESSION_LENGTH: 200,
+            MAX_SIGNATURE_LENGTH: 20,
+            MAX_REPLY_LENGTH: 100,
+            COLORS: [
+                'rgba(255, 224, 224, 0.9)',
+                'rgba(255, 255, 224, 0.9)',
+                'rgba(224, 255, 224, 0.9)',
+                'rgba(224, 224, 255, 0.9)',
+                'rgba(255, 224, 224, 0.9)'
+            ],
+            MAX_POSITION_ATTEMPTS: 50,
+            HOT_CONFESSIONS_LIMIT: 20
+        };
 
         const sampleMessages = [
             { message: "我喜欢你，像风走了八千里，不问归期", signature: "匿名" },
@@ -606,6 +763,62 @@
         let allConfessions = [];
         const renderedTags = new Map();
         let maxZIndex = 1;
+        let confessionIndex = [];
+
+        // 翻译缓存
+        const translationCache = new Map();
+
+        // 模拟翻译函数
+        async function translateText(text, targetLang) {
+            const cacheKey = `${text}:${targetLang}`;
+            if (translationCache.has(cacheKey)) {
+                console.log(`从缓存获取翻译: ${cacheKey}`);
+                return translationCache.get(cacheKey);
+            }
+
+            let translatedText = text;
+            if (targetLang === 'en') {
+                const translationDict = {
+                    "我喜欢你，像风走了八千里，不问归期": "I like you, like the wind travels 8,000 miles, never asking for return.",
+                    "你是我生命中最美的风景": "You are the most beautiful scenery in my life.",
+                    "遇見你是我最大的幸运": "Meeting you is my greatest luck.",
+                    "愿得一人心，白首不分离": "May I win one heart and never part until our hair turns white.",
+                    "你的笑容是我每天的动力": "Your smile is my daily motivation.",
+                    "我想和你一起看遍世间美好": "I want to see all the beauty in the world with you.",
+                    "你是我藏在心底的遗憾": "You are the regret I keep deep in my heart.",
+                    "爱你不是两三天，每天想你很多遍": "Loving you isn’t just for a few days, I think of you many times every day."
+                };
+                translatedText = translationDict[text] || `Translated: ${text}`;
+            } else if (targetLang === 'ja') {
+                const translationDict = {
+                    "我喜欢你，像风走了八千里，不问归期": "君が好き、風が八千里を旅するように、帰りを問わない。",
+                    "你是我生命中最美的风景": "君は僕の人生で最も美しい風景だ。",
+                    "遇見你是我最大的幸运": "君に出会えたのは僕の最大の幸運だ。",
+                    "愿得一人心，白首不分离": "一人の心を勝ち取り、白髪になるまで離れないことを願う。",
+                    "你的笑容是我毎日的动力": "君の笑顔は僕の毎日の原動力だ。",
+                    "我想和你一起看遍世间美好": "君と一緒に世の中の美しいものを全部見たい。",
+                    "你是我藏在心底的遗憾": "君は僕の心の奥に隠された後悔だ。",
+                    "爱你不是两三天，每天想你很多遍": "君を愛するのは数日じゃない、毎日何度も君を思う。"
+                };
+                translatedText = translationDict[text] || `翻訳済み: ${text}`;
+            } else if (targetLang === 'ko') {
+                const translationDict = {
+                    "我喜欢你，像风走了八千里，不问归期": "너를 좋아해, 바람이 8천 리를 여행하듯, 돌아올 날을 묻지 않아.",
+                    "你是我生命中最美的风景": "너는 내 인생에서 가장 아름다운 풍경이야.",
+                    "遇見你是我最大的幸运": "너를 만난 건 내 최대의 행운이야.",
+                    "愿得一人心，白首不分离": "한 사람의 마음을 얻어, 백발이 되어도 헤어지지 않기를.",
+                    "你的笑容是我每天的动力": "너의 미소는 내 매일의 원동력이야.",
+                    "我想和你一起看遍世间美好": "너와 함께 세상의 모든 아름다움을 보고 싶어.",
+                    "你是我藏在心底的遗憾": "너는 내 마음 깊이 숨긴 후회야.",
+                    "爱你不是两三天，每天想你很多遍": "너를 사랑하는 건 며칠이 아니야, 매일 너를 수없이 생각해."
+                };
+                translatedText = translationDict[text] || `번역됨: ${text}`;
+            }
+
+            translationCache.set(cacheKey, translatedText);
+            console.log(`新增翻译缓存: ${cacheKey} -> ${translatedText}`);
+            return translatedText;
+        }
 
         const langData = {
             zh: {
@@ -623,10 +836,15 @@
                 successMessage: '表白成功！',
                 credit: 'Made by @carmel_qveen27',
                 quote: '每一份表白都是心底最真挚的感情',
-                // 新增：搜索相关文本
                 searchPlaceholder: '搜索表白或签名',
                 clearSearchButton: '清除',
-                noResults: '无匹配结果'
+                noResults: '无匹配结果',
+                hotSidebarTitle: '热门表白',
+                hotButton: '热门',
+                showHot: '显示热门榜',
+                hideHot: '隐藏热门榜',
+                pleaseWriteConfession: '请填写表白内容！',
+                submitFailed: '表白提交失败，请检查网络！'
             },
             en: {
                 title: 'Sign Love Wall',
@@ -643,16 +861,72 @@
                 successMessage: 'Confession submitted!',
                 credit: 'Made by @carmel_qveen27',
                 quote: 'Every confession is the truest feeling from the heart',
-                // 新增：搜索相关文本
                 searchPlaceholder: 'Search confession or signature',
                 clearSearchButton: 'Clear',
-                noResults: 'No matching results'
+                noResults: 'No matching results',
+                hotSidebarTitle: 'Hot Confessions',
+                hotButton: 'Hot',
+                showHot: 'Show Hot List',
+                hideHot: 'Hide Hot List',
+                pleaseWriteConfession: 'Please write your confession!',
+                submitFailed: 'Failed to submit confession!'
+            },
+            ja: {
+                title: 'Signラブウォール',
+                confessButton: '告白',
+                confessLoveButton: '愛を告白',
+                shareButton: 'シェア',
+                confessionPlaceholder: 'あなたの告白を書く（最大200文字）',
+                signaturePlaceholder: 'あなたの署名（最大20文字）',
+                replyButton: '返信',
+                replyPlaceholder: '返信を書く（最大100文字）',
+                submitReply: '送信',
+                viewMore: 'もっと見る',
+                collapse: '折りたたむ',
+                successMessage: '告白成功！',
+                credit: 'Made by @carmel_qveen27',
+                quote: 'すべての告白は心からの本当の気持ちです',
+                searchPlaceholder: '告白または署名を検索',
+                clearSearchButton: 'クリア',
+                noResults: '一致する結果なし',
+                hotSidebarTitle: '人気の告白',
+                hotButton: '人気',
+                showHot: '人気リストを表示',
+                hideHot: '人気リストを隠す',
+                pleaseWriteConfession: '告白内容を入力してください！',
+                submitFailed: '告白の送信に失敗しました！'
+            },
+            ko: {
+                title: 'Sign 러브 월',
+                confessButton: '고백',
+                confessLoveButton: '사랑 고백',
+                shareButton: '공유',
+                confessionPlaceholder: '당신의 고백을 작성하세요 (최대 200자)',
+                signaturePlaceholder: '당신의 서명 (최대 20자)',
+                replyButton: '답글',
+                replyPlaceholder: '답글을 작성하세요 (최대 100자)',
+                submitReply: '제출',
+                viewMore: '더 보기',
+                collapse: '접기',
+                successMessage: '고백 성공!',
+                credit: 'Made by @carmel_qveen27',
+                quote: '모든 고백은 마음에서 우러나오는 진실한 감정입니다',
+                searchPlaceholder: '고백 또는 서명을 검색',
+                clearSearchButton: '지우기',
+                noResults: '일치하는 결과 없음',
+                hotSidebarTitle: '인기 고백',
+                hotButton: '인기',
+                showHot: '인기 리스트 표시',
+                hideHot: '인기 리스트 숨기기',
+                pleaseWriteConfession: '고백 내용을 작성해주세요!',
+                submitFailed: '고백 제출 실패!'
             }
         };
 
         let currentLang = localStorage.getItem('lang') || 'zh';
 
-        function updateLanguage() {
+        async function updateLanguage() {
+            console.log(`切换语言到: ${currentLang}`);
             document.querySelector('.title').textContent = langData[currentLang].title;
             document.getElementById('confessButton').textContent = langData[currentLang].confessButton;
             document.getElementById('confessLoveButton').textContent = langData[currentLang].confessLoveButton;
@@ -662,17 +936,44 @@
             document.getElementById('successMessage').textContent = langData[currentLang].successMessage;
             document.querySelector('.credit').textContent = langData[currentLang].credit;
             document.querySelector('.quote').textContent = langData[currentLang].quote;
-            document.getElementById('languageToggle').textContent = currentLang === 'zh' ? 'English' : '中文';
-            // 新增：更新搜索相关UI
             document.getElementById('searchInput').placeholder = langData[currentLang].searchPlaceholder;
             document.getElementById('clearSearchButton').setAttribute('aria-label', langData[currentLang].clearSearchButton);
             document.getElementById('noResultsMessage').textContent = langData[currentLang].noResults;
-            renderedTags.forEach(tag => {
+            document.querySelector('.hot-sidebar h3').textContent = langData[currentLang].hotSidebarTitle;
+
+            const toggleSidebarButton = document.getElementById('toggleSidebarButton');
+            toggleSidebarButton.textContent = langData[currentLang].hotButton;
+            const isSidebarVisible = document.querySelector('.hot-sidebar').classList.contains('visible');
+            toggleSidebarButton.setAttribute('aria-label', isSidebarVisible ? langData[currentLang].hideHot : langData[currentLang].showHot);
+
+            const emojiPicker = document.querySelector('emoji-picker');
+            emojiPicker.locale = currentLang;
+
+            for (const [id, tag] of renderedTags) {
+                const textNode = tag.querySelector('div:not(.signature):not(.replies):not(.replies-hidden):not(.reply-input)');
+                const signatureNode = tag.querySelector('.signature');
+                const originalText = allConfessions.find(conf => conf.id === id)?.text || textNode.textContent;
+                const originalSignature = allConfessions.find(conf => conf.id === id)?.signature || signatureNode.textContent.replace('— ', '');
+
+                let translatedText = originalText;
+                let translatedSignature = originalSignature;
+
+                if (currentLang !== 'zh') {
+                    translatedText = await translateText(originalText, currentLang);
+                    translatedSignature = await translateText(originalSignature, currentLang);
+                }
+
+                textNode.textContent = translatedText;
+                signatureNode.textContent = `— ${translatedSignature}`;
+                tag.dataset.text = translatedText.toLowerCase();
+                tag.dataset.signature = translatedSignature.toLowerCase();
+
                 tag.querySelector('.reply-button').textContent = langData[currentLang].replyButton;
                 const submitReply = tag.querySelector('.submit-reply');
                 if (submitReply) submitReply.textContent = langData[currentLang].submitReply;
                 const replyInput = tag.querySelector('.reply-input textarea');
                 if (replyInput) replyInput.placeholder = langData[currentLang].replyPlaceholder;
+
                 const toggleButton = tag.querySelector('.toggle-replies');
                 if (toggleButton) {
                     const replyCount = tag.querySelectorAll('.replies-hidden .reply').length;
@@ -680,13 +981,77 @@
                         ? langData[currentLang].collapse
                         : `${langData[currentLang].viewMore} (${replyCount})`;
                 }
-            });
+            }
+
+            const hotConfessionsDiv = document.getElementById('hotConfessions');
+            hotConfessionsDiv.innerHTML = '';
+            const sortedConfessions = Object.entries(allConfessions)
+                .sort(([, a], [, b]) => (b.likes || 0) - (a.likes || 0))
+                .slice(0, CONFIG.HOT_CONFESSIONS_LIMIT);
+
+            const fragment = document.createDocumentFragment();
+            const fragmentClone = document.createDocumentFragment();
+
+            for (const [id, conf] of sortedConfessions) {
+                let translatedText = conf.text;
+                let translatedSignature = conf.signature;
+                if (currentLang !== 'zh') {
+                    translatedText = await translateText(conf.text, currentLang);
+                    translatedSignature = await translateText(conf.signature, currentLang);
+                }
+                const hotDiv = document.createElement('div');
+                hotDiv.className = 'hot-confession';
+                hotDiv.dataset.id = id;
+                hotDiv.innerHTML = `
+                    <p>${translatedText}</p>
+                    <div class="signature">— ${translatedSignature}</div>
+                    <div>❤️ ${conf.likes || 0}</div>
+                `;
+                hotDiv.addEventListener('click', () => {
+                    const tag = renderedTags.get(id);
+                    if (tag) {
+                        maxZIndex += 1;
+                        tag.style.zIndex = maxZIndex;
+                        tag.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    }
+                });
+                fragment.appendChild(hotDiv);
+
+                const hotDivClone = hotDiv.cloneNode(true);
+                hotDivClone.addEventListener('click', () => {
+                    const tag = renderedTags.get(id);
+                    if (tag) {
+                        maxZIndex += 1;
+                        tag.style.zIndex = maxZIndex;
+                        tag.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    }
+                });
+                fragmentClone.appendChild(hotDivClone);
+            }
+
+            hotConfessionsDiv.appendChild(fragment);
+            hotConfessionsDiv.appendChild(fragmentClone);
+
+            const scrollDuration = sortedConfessions.length * 2;
+            hotConfessionsDiv.style.animationDuration = `${scrollDuration}s`;
+        }
+
+        function showError(message) {
+            const errorDiv = document.createElement('div');
+            errorDiv.className = 'success-message';
+            errorDiv.style.backgroundColor = '#f44336';
+            errorDiv.textContent = message;
+            document.body.appendChild(errorDiv);
+            errorDiv.style.display = 'block';
+            setTimeout(() => {
+                errorDiv.remove();
+            }, 3000);
         }
 
         function checkLimit(element, maxLength) {
             const value = element.value;
             if (value.length >= maxLength) {
-                alert(currentLang === 'zh' ? `输入已达到上限（${maxLength}字），请精简内容！` : `Input has reached the limit (${maxLength} chars), please shorten it!`);
+                showError(langData[currentLang][`输入已达到上限（${maxLength}字），请精简内容！`] || `Input has reached the limit (${maxLength} chars), please shorten it!`);
             }
         }
 
@@ -722,13 +1087,12 @@
 
             let x, y;
             let attempts = 0;
-            const maxAttempts = 50;
 
             do {
                 x = Math.floor(Math.random() * maxX);
                 y = Math.floor(Math.random() * (maxY - 100)) + 100;
                 attempts++;
-                if (attempts > maxAttempts) {
+                if (attempts > CONFIG.MAX_POSITION_ATTEMPTS) {
                     x = maxX / 4;
                     y = maxY / 2;
                     break;
@@ -780,29 +1144,40 @@
             }
         }
 
-        function addConfession() {
+        async function addConfession() {
             console.log("addConfession 函数被调用");
 
             const confessionInput = document.getElementById('confessionInput');
             const signatureInput = document.getElementById('signatureInput');
+            const confessButton = document.getElementById('confessButton');
             const confessionText = confessionInput.value.trim();
-            const signatureText = signatureInput.value.trim() || (currentLang === 'zh' ? '匿名' : 'Anonymous');
+            const signatureText = signatureInput.value.trim() || langData[currentLang].anonymous || '匿名';
 
             if (confessionText === '') {
-                alert(currentLang === 'zh' ? '请写下你的表白内容！' : 'Please write your confession!');
+                showError(langData[currentLang].pleaseWriteConfession);
                 console.log("表白内容为空，停止执行");
                 return;
             }
 
             console.log("表白内容:", confessionText, "签名:", signatureText);
 
+            confessButton.disabled = true;
             const { xPercent, yPercent } = getRandomPosition(renderedTags);
-            const randomColor = colors[Math.floor(Math.random() * colors.length)];
-            const newConfession = { text: confessionText, signature: signatureText, xPercent, yPercent, color: randomColor, likes: 0 };
+            const randomColor = CONFIG.COLORS[Math.floor(Math.random() * CONFIG.COLORS.length)];
+            const newConfession = {
+                text: confessionText,
+                signature: signatureText,
+                xPercent,
+                yPercent,
+                color: randomColor,
+                likes: 0,
+                timestamp: Date.now()
+            };
 
             console.log("新表白数据:", newConfession);
 
-            push(confessionsRef, newConfession).then((snapshot) => {
+            try {
+                await push(confessionsRef, newConfession);
                 console.log("表白提交成功");
                 lastConfession = newConfession;
                 confessionInput.value = '';
@@ -814,10 +1189,12 @@
                     successMessage.style.display = 'none';
                     document.getElementById('inputArea').style.display = 'none';
                 }, 2000);
-            }).catch((error) => {
+            } catch (error) {
                 console.error('提交表白失败:', error);
-                alert(currentLang === 'zh' ? '提交表白失败，请检查网络或 Firebase 配置！' : 'Failed to submit confession, please check network or Firebase config!');
-            });
+                showError(langData[currentLang].submitFailed);
+            } finally {
+                confessButton.disabled = false;
+            }
         }
 
         function createTag(text, signature, xPercent, yPercent, color, id, likes = 0, replies = {}, isNew = false) {
@@ -826,7 +1203,6 @@
             tag.style.backgroundColor = color;
             tag.dataset.id = id;
             tag.dataset.repliesHash = JSON.stringify(replies || {});
-            // 新增：存储文本和签名用于搜索
             tag.dataset.text = text.toLowerCase();
             tag.dataset.signature = signature.toLowerCase();
 
@@ -847,30 +1223,31 @@
 
             const textNode = document.createElement('div');
             textNode.textContent = text;
+            tag.appendChild(textNode);
+
             const sigNode = document.createElement('div');
             sigNode.className = 'signature';
             sigNode.textContent = `— ${signature}`;
-            tag.appendChild(textNode);
             tag.appendChild(sigNode);
 
             const likeButton = document.createElement('button');
             likeButton.className = 'like-button';
             likeButton.dataset.id = id;
             likeButton.innerHTML = `❤️ <span>${likes}</span>`;
-            likeButton.setAttribute('aria-label', currentLang === 'zh' ? '点赞此表白' : 'Like this confession');
+            likeButton.setAttribute('aria-label', langData[currentLang].likeThisConfession || 'Like this confession');
             tag.appendChild(likeButton);
 
             const replyButton = document.createElement('button');
             replyButton.className = 'reply-button';
             replyButton.dataset.id = id;
             replyButton.textContent = langData[currentLang].replyButton;
-            replyButton.setAttribute('aria-label', currentLang === 'zh' ? '回复此表白' : 'Reply to this confession');
+            replyButton.setAttribute('aria-label', langData[currentLang].replyToConfession || 'Reply to this confession');
             tag.appendChild(replyButton);
 
             const replyInput = document.createElement('div');
             replyInput.className = 'reply-input';
             replyInput.innerHTML = `
-                <textarea placeholder="${langData[currentLang].replyPlaceholder}" maxlength="100"></textarea>
+                <textarea placeholder="${langData[currentLang].replyPlaceholder}" maxlength="${CONFIG.MAX_REPLY_LENGTH}"></textarea>
                 <button class="submit-reply">${langData[currentLang].submitReply}</button>
             `;
             tag.appendChild(replyInput);
@@ -891,7 +1268,7 @@
                 const latestReply = sortedReplies[0];
                 const replyNode = document.createElement('div');
                 replyNode.className = 'reply';
-                replyNode.textContent = `${latestReply.text} — ${new Date(latestReply.timestamp).toLocaleTimeString()}`;
+                replyNode.textContent = `${latestReply.text} — ${new Date(latestReply.timestamp).toLocaleTimeString(currentLang)}`;
                 repliesContainer.appendChild(replyNode);
             }
 
@@ -899,7 +1276,7 @@
                 sortedReplies.slice(1).forEach(reply => {
                     const replyNode = document.createElement('div');
                     replyNode.className = 'reply';
-                    replyNode.textContent = `${reply.text} — ${new Date(reply.timestamp).toLocaleTimeString()}`;
+                    replyNode.textContent = `${reply.text} — ${new Date(reply.timestamp).toLocaleTimeString(currentLang)}`;
                     hiddenRepliesContainer.appendChild(replyNode);
                 });
 
@@ -909,13 +1286,13 @@
                     toggleButton.className = 'toggle-replies';
                     tag.appendChild(toggleButton);
                 }
-                toggleButton.textContent = langData[currentLang].viewMore ? `${langData[currentLang].viewMore} (${sortedReplies.length - 1})` : `查看更多 (${sortedReplies.length - 1})`;
+                toggleButton.textContent = `${langData[currentLang].viewMore} (${sortedReplies.length - 1})`;
                 toggleButton.addEventListener('click', () => {
                     const isExpanded = hiddenRepliesContainer.classList.contains('show');
                     hiddenRepliesContainer.classList.toggle('show', !isExpanded);
                     toggleButton.textContent = isExpanded
-                        ? (langData[currentLang].viewMore ? `${langData[currentLang].viewMore} (${sortedReplies.length - 1})` : `查看更多 (${sortedReplies.length - 1})`)
-                        : (langData[currentLang].collapse || '收起');
+                        ? `${langData[currentLang].viewMore} (${sortedReplies.length - 1})`
+                        : langData[currentLang].collapse;
                 });
                 console.log(`创建/更新 toggleButton for 标签 ${id}, 回复数: ${sortedReplies.length}`);
             }
@@ -956,7 +1333,7 @@
                 }).catch(error => {
                     console.error('更新点赞失败:', error);
                     likeButton.querySelector('span').textContent = currentLikes;
-                    alert(currentLang === 'zh' ? '点赞失败，请稍后重试！' : 'Failed to like, please try again later!');
+                    showError(langData[currentLang].likeFailed || 'Failed to like, please try again later!');
                 }).finally(() => {
                     likeButton.disabled = false;
                 });
@@ -1074,7 +1451,7 @@
                 e.stopPropagation();
                 const replyText = replyInput.querySelector('textarea').value.trim();
                 if (replyText === '') {
-                    alert(currentLang === 'zh' ? '回复内容不能为空！' : 'Reply cannot be empty!');
+                    showError(langData[currentLang].replyEmpty || 'Reply cannot be empty!');
                     return;
                 }
                 console.log(`提交回复 for 标签 ${id}: ${replyText}`);
@@ -1088,23 +1465,44 @@
                     replyInput.classList.remove('visible');
                 }).catch(error => {
                     console.error('提交回复失败:', error);
-                    alert(currentLang === 'zh' ? '提交回复失败，请检查网络！' : 'Failed to submit reply, please check network!');
+                    showError(langData[currentLang].replyFailed || 'Failed to submit reply, please check network!');
                 });
             });
 
             return tag;
         }
 
+        function updateConfessionIndex(confessions) {
+            confessionIndex = Object.entries(confessions || {}).map(([id, conf]) => ({
+                id,
+                text: conf.text.toLowerCase(),
+                signature: conf.signature.toLowerCase()
+            }));
+        }
+
         function shareLastConfession(confessionToShare) {
             console.log("shareLastConfession 函数被调用");
             const tweetUrl = 'https://signlove.netlify.app/';
-            let tweetText = currentLang === 'zh' ? '来 Sign表白墙分享你的心动吧！' : 'Come share your heartbeat on Sign Love Wall!';
+            let tweetText = langData[currentLang].shareText || 'Come share your heartbeat on Sign Love Wall!';
             if (confessionToShare) {
-                tweetText = `${confessionToShare.text} — ${confessionToShare.signature} (${currentLang === 'zh' ? '来自 Sign表白墙' : 'from Sign Love Wall'})`;
+                tweetText = `${confessionToShare.text} — ${confessionToShare.signature} (${langData[currentLang].fromSignLove || 'from Sign Love Wall'})`;
             }
             const url = `https://x.com/intent/tweet?text=${encodeURIComponent(tweetText)}&url=${encodeURIComponent(tweetUrl)}`;
             window.open(url, '_blank');
             console.log("分享链接:", url);
+        }
+
+        function toggleSidebar() {
+            const sidebar = document.getElementById('hotSidebar');
+            const toggleButton = document.getElementById('toggleSidebarButton');
+            if (!sidebar || !toggleButton) {
+                console.error('未找到侧边栏或切换按钮');
+                return;
+            }
+            sidebar.classList.toggle('visible');
+            const isVisible = sidebar.classList.contains('visible');
+            toggleButton.setAttribute('aria-label', isVisible ? langData[currentLang].hideHot : langData[currentLang].showHot);
+            console.log(`侧边栏状态: ${isVisible ? '显示' : '隐藏'}, 按钮文本: ${toggleButton.textContent}, 按钮位置: top=${toggleButton.style.top}, right=${toggleButton.style.right}`);
         }
 
         document.addEventListener('DOMContentLoaded', () => {
@@ -1118,35 +1516,34 @@
             const inputArea = document.getElementById('inputArea');
             const closeButton = document.getElementById('closeButton');
             const languageToggle = document.getElementById('languageToggle');
-            // 新增：搜索相关DOM元素
             const searchInput = document.getElementById('searchInput');
             const clearSearchButton = document.getElementById('clearSearchButton');
             const noResultsMessage = document.getElementById('noResultsMessage');
+            const confessionCharCount = document.getElementById('confessionCharCount');
+            const signatureCharCount = document.getElementById('signatureCharCount');
+            const toggleSidebarButton = document.getElementById('toggleSidebarButton');
 
-            if (!confessionInput || !signatureInput || !confessButton || !shareButton || !confessLoveButton || !inputArea || !closeButton || !languageToggle || !searchInput || !clearSearchButton || !noResultsMessage) {
-                console.error('无法找到必要的 DOM 元素:', {
-                    confessionInput: !!confessionInput,
-                    signatureInput: !!signatureInput,
-                    confessButton: !!confessButton,
-                    shareButton: !!shareButton,
-                    confessLoveButton: !!confessLoveButton,
-                    inputArea: !!inputArea,
-                    closeButton: !!closeButton,
-                    languageToggle: !!languageToggle,
-                    searchInput: !!searchInput,
-                    clearSearchButton: !!clearSearchButton,
-                    noResultsMessage: !!noResultsMessage
-                });
+            if (!confessionInput || !signatureInput || !confessButton || !shareButton || !confessLoveButton || !inputArea || !closeButton || !languageToggle || !searchInput || !clearSearchButton || !noResultsMessage || !toggleSidebarButton) {
+                console.error('无法找到必要的 DOM 元素');
                 return;
             }
 
             updateLanguage();
 
             confessionInput.addEventListener('input', function() {
-                checkLimit(this, 200);
+                checkLimit(this, CONFIG.MAX_CONFESSION_LENGTH);
+                confessionCharCount.textContent = CONFIG.MAX_CONFESSION_LENGTH - this.value.length;
             });
+
             signatureInput.addEventListener('input', function() {
-                checkLimit(this, 20);
+                checkLimit(this, CONFIG.MAX_SIGNATURE_LENGTH);
+                signatureCharCount.textContent = CONFIG.MAX_SIGNATURE_LENGTH - this.value.length;
+            });
+
+            const emojiPicker = document.querySelector('emoji-picker');
+            emojiPicker.addEventListener('emoji-click', (event) => {
+                confessionInput.value += event.detail.unicode;
+                confessionInput.dispatchEvent(new Event('input'));
             });
 
             confessButton.addEventListener('click', () => {
@@ -1167,6 +1564,7 @@
                 inputArea.style.top = '50%';
                 inputArea.style.left = '50%';
                 inputArea.style.transform = 'translate(-50%, -50%)';
+                inputArea.style.zIndex = maxZIndex + 1;
             });
 
             closeButton.addEventListener('click', () => {
@@ -1174,24 +1572,28 @@
                 inputArea.style.display = 'none';
                 confessionInput.value = '';
                 signatureInput.value = '';
+                confessionCharCount.textContent = CONFIG.MAX_CONFESSION_LENGTH;
+                signatureCharCount.textContent = CONFIG.MAX_SIGNATURE_LENGTH;
             });
 
-            languageToggle.addEventListener('click', () => {
-                console.log("语言切换按钮被点击");
-                currentLang = currentLang === 'zh' ? 'en' : 'zh';
+            languageToggle.addEventListener('change', () => {
+                console.log("语言切换被选择");
+                currentLang = languageToggle.value;
                 localStorage.setItem('lang', currentLang);
                 updateLanguage();
             });
 
-            // 新增：实时搜索功能
             searchInput.addEventListener('input', () => {
                 const query = searchInput.value.trim().toLowerCase();
                 clearSearchButton.style.display = query ? 'block' : 'none';
                 let matchCount = 0;
 
-                renderedTags.forEach(tag => {
-                    const isMatch = tag.dataset.text.includes(query) || tag.dataset.signature.includes(query);
+                const matches = confessionIndex.filter(
+                    (item) => item.text.includes(query) || item.signature.includes(query)
+                );
 
+                renderedTags.forEach(tag => {
+                    const isMatch = matches.some((match) => match.id === tag.dataset.id);
                     tag.classList.toggle('match', isMatch && query);
                     tag.classList.toggle('hidden', !isMatch && query);
                     if (isMatch) matchCount++;
@@ -1200,7 +1602,6 @@
                 noResultsMessage.style.display = query && matchCount === 0 ? 'block' : 'none';
             });
 
-            // 新增：清除搜索
             clearSearchButton.addEventListener('click', () => {
                 searchInput.value = '';
                 clearSearchButton.style.display = 'none';
@@ -1210,19 +1611,25 @@
                 });
             });
 
+            toggleSidebarButton.addEventListener('click', () => {
+                console.log("热门榜切换按钮被点击");
+                toggleSidebar();
+            });
+
             onValue(confessionsRef, (snapshot) => {
                 if (!snapshot.exists()) {
                     console.log("数据库为空，初始化示例表白");
                     sampleMessages.forEach(sample => {
                         const { xPercent, yPercent } = getRandomPosition(renderedTags);
-                        const randomColor = colors[Math.floor(Math.random() * colors.length)];
+                        const randomColor = CONFIG.COLORS[Math.floor(Math.random() * CONFIG.COLORS.length)];
                         push(confessionsRef, {
                             text: sample.message,
                             signature: sample.signature,
                             xPercent,
                             yPercent,
                             color: randomColor,
-                            likes: 0
+                            likes: 0,
+                            timestamp: Date.now()
                         }).catch((error) => {
                             console.error('初始化示例表白失败:', error);
                         });
@@ -1232,7 +1639,7 @@
                 }
             }, { onlyOnce: true });
 
-            onValue(confessionsRef, (snapshot) => {
+            onValue(confessionsRef, async (snapshot) => {
                 console.log("加载表白数据");
                 const confessions = snapshot.val();
                 const newIds = new Set(confessions ? Object.keys(confessions) : []);
@@ -1245,9 +1652,12 @@
                     }
                 }
 
+                updateConfessionIndex(confessions);
+
                 allConfessions = [];
                 if (confessions) {
-                    Object.entries(confessions).forEach(([id, conf]) => {
+                    for (const [id, conf] of Object.entries(confessions)) {
+                        conf.id = id;
                         let xPercent = conf.xPercent;
                         let yPercent = conf.yPercent;
                         if (conf.x !== undefined && conf.y !== undefined && xPercent === undefined && yPercent === undefined) {
@@ -1261,19 +1671,25 @@
                             });
                         }
 
+                        let displayText = conf.text;
+                        let displaySignature = conf.signature;
+                        if (currentLang !== 'zh') {
+                            displayText = await translateText(conf.text, currentLang);
+                            displaySignature = await translateText(conf.signature, currentLang);
+                        }
+
                         if (renderedTags.has(id)) {
                             const tag = renderedTags.get(id);
                             const newX = (xPercent / 100) * window.innerWidth;
                             const newY = (yPercent / 100) * window.innerHeight;
                             tag.style.left = `${newX}px`;
                             tag.style.top = `${newY}px`;
-                            tag.querySelector('div').textContent = conf.text;
-                            tag.querySelector('.signature').textContent = `— ${conf.signature}`;
+                            tag.querySelector('div').textContent = displayText;
+                            tag.querySelector('.signature').textContent = `— ${displaySignature}`;
                             tag.querySelector('.like-button span').textContent = conf.likes || 0;
-                            tag.style.backgroundColor = conf.color || colors[Math.floor(Math.random() * colors.length)];
-                            // 新增：更新搜索数据
-                            tag.dataset.text = conf.text.toLowerCase();
-                            tag.dataset.signature = conf.signature.toLowerCase();
+                            tag.style.backgroundColor = conf.color || CONFIG.COLORS[Math.floor(Math.random() * CONFIG.COLORS.length)];
+                            tag.dataset.text = displayText.toLowerCase();
+                            tag.dataset.signature = displaySignature.toLowerCase();
 
                             const newRepliesHash = JSON.stringify(conf.replies || {});
                             if (tag.dataset.repliesHash !== newRepliesHash) {
@@ -1292,7 +1708,7 @@
                                     const latestReply = sortedReplies[0];
                                     const replyNode = document.createElement('div');
                                     replyNode.className = 'reply';
-                                    replyNode.textContent = `${latestReply.text} — ${new Date(latestReply.timestamp).toLocaleTimeString()}`;
+                                    replyNode.textContent = `${latestReply.text} — ${new Date(latestReply.timestamp).toLocaleTimeString(currentLang)}`;
                                     repliesContainer.appendChild(replyNode);
                                 }
 
@@ -1300,47 +1716,43 @@
                                     sortedReplies.slice(1).forEach(reply => {
                                         const replyNode = document.createElement('div');
                                         replyNode.className = 'reply';
-                                        replyNode.textContent = `${reply.text} — ${new Date(reply.timestamp).toLocaleTimeString()}`;
+                                        replyNode.textContent = `${reply.text} — ${new Date(reply.timestamp).toLocaleTimeString(currentLang)}`;
                                         hiddenRepliesContainer.appendChild(replyNode);
                                     });
 
-                                    let newToggleButton = tag.querySelector('.toggle-replies');
-                                    if (!newToggleButton) {
-                                        newToggleButton = document.createElement('button');
-                                        newToggleButton.className = 'toggle-replies';
-                                        tag.appendChild(newToggleButton);
-                                    }
-                                    newToggleButton.textContent = langData[currentLang].viewMore ? `${langData[currentLang].viewMore} (${sortedReplies.length - 1})` : `查看更多 (${sortedReplies.length - 1})`;
-                                    newToggleButton.addEventListener('click', () => {
+                                    const toggleButton = document.createElement('button');
+                                    toggleButton.className = 'toggle-replies';
+                                    toggleButton.textContent = `${langData[currentLang].viewMore} (${sortedReplies.length - 1})`;
+                                    tag.appendChild(toggleButton);
+                                    toggleButton.addEventListener('click', () => {
                                         const isExpanded = hiddenRepliesContainer.classList.contains('show');
                                         hiddenRepliesContainer.classList.toggle('show', !isExpanded);
-                                        newToggleButton.textContent = isExpanded
-                                            ? (langData[currentLang].viewMore ? `${langData[currentLang].viewMore} (${sortedReplies.length - 1})` : `查看更多 (${sortedReplies.length - 1})`)
-                                            : (langData[currentLang].collapse || '收起');
+                                        toggleButton.textContent = isExpanded
+                                            ? `${langData[currentLang].viewMore} (${sortedReplies.length - 1})`
+                                            : langData[currentLang].collapse;
                                     });
-                                    console.log(`创建/更新 toggleButton for 标签 ${id}, 回复数: ${sortedReplies.length}`);
                                 }
-
                                 tag.dataset.repliesHash = newRepliesHash;
                             }
-
-                            console.log(`更新标签 ID: ${id}, xPercent=${xPercent}, yPercent=${yPercent}`);
                         } else {
-                            const tag = createTag(conf.text, conf.signature, xPercent, yPercent, conf.color || colors[Math.floor(Math.random() * colors.length)], id, conf.likes, conf.replies, false);
+                            const tag = createTag(
+                                displayText,
+                                displaySignature,
+                                xPercent,
+                                yPercent,
+                                conf.color,
+                                id,
+                                conf.likes,
+                                conf.replies,
+                                lastConfession && lastConfession.text === conf.text && lastConfession.signature === conf.signature
+                            );
                             renderedTags.set(id, tag);
-                            console.log(`创建标签 ID: ${id}, xPercent=${xPercent}, yPercent=${yPercent}`);
                         }
                         allConfessions.push(conf);
-                    });
-                    console.log("表白数据加载完成，共有", allConfessions.length, "条表白");
-                } else {
-                    console.log("没有表白数据");
-                    renderedTags.forEach(tag => tag.remove());
-                    renderedTags.clear();
+                    }
                 }
-            }, (error) => {
-                console.error('加载表白失败:', error);
-                alert(currentLang === 'zh' ? '无法加载表白数据，请稍后重试！' : 'Failed to load confessions, please try again later!');
+
+                updateLanguage();
             });
         });
     </script>
